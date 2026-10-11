@@ -9,11 +9,11 @@ You start with one game. A new one joins at 0:12, 0:27 and 0:45, and everything 
 | Task | Keys | Goal |
 |---|---|---|
 | Balance | ← → | Tilt the plank so the ball stays on. Watch the wind. |
-| Dodge | ↑ ↓ | Hop between three boxes to dodge the arrows. |
+| Dodge | ↑ ↓ | Hop between five boxes to dodge the arrows. |
+| Zones | W A S D | Keep your square inside a box. Move into the next one before it vanishes. |
 | Jump | Space | Hop over the blocks. |
-| Catch | A D | Catch every drop before it lands. |
 
-P pauses and M mutes. On a touch screen, hold either half of a panel to steer it, tap the top or bottom of Dodge to switch boxes, and tap the Jump panel to hop.
+P pauses and M mutes. On a touch screen, hold either half of Balance to tilt it, tap the top or bottom of Dodge to switch boxes, hold where the Zones square should go, and tap Jump to hop.
 
 ## Run it locally
 

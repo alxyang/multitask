@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Multitask</title>
-<meta name="description" content="Keep four tiny games alive at once: Balance, Dodge, Jump and Catch, faster and faster. A browser remake of the Flash game Multitask.">
+<meta name="description" content="Keep four tiny games alive at once: Balance, Dodge, Zones and Jump, faster and faster. A browser remake of the Flash game Multitask.">
 <meta name="theme-color" content="#13141c">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Multitask">
@@ -24,8 +24,8 @@
   --scrim: rgba(19, 20, 28, 0.66);
   --balance: #9dc3e3;
   --dodge: #f0a898;
-  --jump: #a7d5af;
-  --catch: #f2d17c;
+  --zones: #a7d5af;
+  --jump: #f2d17c;
   --fail: #ff5b4f;
   --font-display: "Unbounded", "Arial Black", system-ui, sans-serif;
   --font-mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -61,8 +61,8 @@ body {
 .brand { font: 900 17px/1 var(--font-display); letter-spacing: 0.02em; }
 .brand span:nth-child(1) { color: var(--balance); }
 .brand span:nth-child(2) { color: var(--dodge); }
-.brand span:nth-child(3) { color: var(--jump); }
-.brand span:nth-child(4) { color: var(--catch); }
+.brand span:nth-child(3) { color: var(--zones); }
+.brand span:nth-child(4) { color: var(--jump); }
 .readout { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
 .stat { display: flex; align-items: baseline; gap: 8px; }
 .lbl { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
@@ -74,8 +74,8 @@ body {
 .tasks i.on { border-color: transparent; }
 .tasks i.on:nth-child(1) { background: var(--balance); }
 .tasks i.on:nth-child(2) { background: var(--dodge); }
-.tasks i.on:nth-child(3) { background: var(--jump); }
-.tasks i.on:nth-child(4) { background: var(--catch); }
+.tasks i.on:nth-child(3) { background: var(--zones); }
+.tasks i.on:nth-child(4) { background: var(--jump); }
 
 button {
   font: 500 12px/1 var(--font-mono);
@@ -123,8 +123,8 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .title span { display: inline-block; }
 .title .t1 { color: var(--balance); }
 .title .t2 { color: var(--dodge); }
-.title .t3 { color: var(--jump); }
-.title .t4 { color: var(--catch); }
+.title .t3 { color: var(--zones); }
+.title .t4 { color: var(--jump); }
 .lede { margin: 0; max-width: 52ch; color: var(--paper); text-wrap: pretty; }
 .ctrls {
   list-style: none;
@@ -212,12 +212,12 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
         <ul class="ctrls">
           <li style="--c: var(--balance)"><span class="nm">Balance</span><span class="ks"><kbd>←</kbd><kbd>→</kbd></span><span class="ht">Tilt the plank so the ball stays on.</span></li>
           <li style="--c: var(--dodge)"><span class="nm">Dodge</span><span class="ks"><kbd>↑</kbd><kbd>↓</kbd></span><span class="ht">Hop between the boxes to dodge the arrows.</span></li>
+          <li style="--c: var(--zones)"><span class="nm">Zones</span><span class="ks"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span class="ht">Keep your square inside a box. Move on before it vanishes.</span></li>
           <li style="--c: var(--jump)"><span class="nm">Jump</span><span class="ks"><kbd>Space</kbd></span><span class="ht">Hop over the blocks.</span></li>
-          <li style="--c: var(--catch)"><span class="nm">Catch</span><span class="ks"><kbd>A</kbd><kbd>D</kbd></span><span class="ht">Catch every drop before it lands.</span></li>
         </ul>
         <div class="row">
           <button type="button" class="go" id="startBtn">Start <kbd>Space</kbd></button>
-          <p class="note">Right hand on the arrows, left hand on A, D and Space.</p>
+          <p class="note">Right hand on the arrows, left hand on W A S D and Space.</p>
         </div>
       </div>
     </section>
@@ -246,7 +246,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 </main>
 
 <footer class="foot">
-  <p>Touch: hold either half of a panel to steer it. Tap the top or bottom of Dodge to switch boxes, and tap Jump to hop.</p>
+  <p>Touch: hold either half of Balance to tilt it, tap the top or bottom of Dodge to switch boxes, hold where the Zones square should go, and tap Jump to hop.</p>
   <p>Inspired by the Flash game Multitask by IcyLime.</p>
 </footer>
 
@@ -372,9 +372,9 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   }
   const sfx = {
     jump: () => tone(380, 640, 0.1, 'square', 0.07),
-    catch: () => { tone(880, 880, 0.07, 'sine', 0.16); tone(1320, 1320, 0.12, 'sine', 0.12, 0.06); },
     warn: () => tone(1250, 950, 0.05, 'square', 0.035),
     hop: () => tone(520, 700, 0.04, 'square', 0.04),
+    box: () => tone(660, 880, 0.08, 'triangle', 0.08),
     edge: () => tone(620, 620, 0.06, 'triangle', 0.12),
     tick: () => tone(1046, 1046, 0.05, 'triangle', 0.12),
     incoming: () => { tone(523, 523, 0.12, 'triangle', 0.16); tone(784, 784, 0.2, 'triangle', 0.16, 0.13); },
@@ -423,7 +423,8 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       Object.assign(g, { th: 0, u: rand(-10, 10), v: rand(-12, 12), wind: 0, windT: 0, windTimer: 1.6, rot: 0, fall: null, edgeCd: 0 });
       g.streaks = Array.from({ length: 9 }, () => ({ x: rand(0, VW), y: rand(46, 150), l: rand(12, 30) }));
     };
-    g.update = (dt, s, dir) => {
+    g.update = (dt, s, inp) => {
+      const dir = inp.dir;
       // The plank turns at a fixed rate; Balance speeds up at 60% of the global pace.
       const turn = 0.75 * dt;
       g.th += clamp(dir * 0.26 - g.th, -turn, turn);
@@ -514,15 +515,15 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   }
 
   function makeDodge() {
-    // Three fixed boxes stacked down the left edge; arrows fly along their rows at one constant speed.
-    const X = 48, P = 18, B = 36, LANES = 3, TOP = 44, LH = 80, ML = 34, V = 165;
+    // Five fixed boxes stacked down the left edge; arrows fly along their rows at one constant speed.
+    const X = 48, P = 18, B = 38, LANES = 5, TOP = 38, LH = 50, ML = 34, V = 165;
     const laneY = (l) => TOP + LH * l + LH / 2;
     const g = {
       name: 'Dodge', keys: ['↑', '↓'], color: tok('--dodge'),
       hint: 'Hop between the boxes. Dodge the arrows.',
       touch: 'Touch: tap the top or bottom half',
     };
-    g.reset = () => { Object.assign(g, { lane: 1, y: laneY(1), m: [], timer: 1.4, t: 0 }); };
+    g.reset = () => { Object.assign(g, { lane: 2, y: laneY(2), m: [], timer: 1.4, t: 0 }); };
     g.press = (d) => {
       const lane = clamp(g.lane + d, 0, LANES - 1);
       if (lane !== g.lane) { g.lane = lane; sfx.hop(); }
@@ -533,7 +534,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       if ((g.timer -= dt) <= 0) {
         // At least 0.9 s apart, so two arrows never cross the boxes at the same moment.
         g.timer = Math.max(0.9, rand(1.4, 2.2) / Math.sqrt(s));
-        const lane = Math.random() < 0.6 ? g.lane : Math.floor(Math.random() * LANES);
+        const lane = Math.random() < 0.5 ? g.lane : Math.floor(Math.random() * LANES);
         g.m.push({ x: VW + 4, lane, warn: 0.8 });
         sfx.warn();
       }
@@ -548,7 +549,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       const threatened = (lane) => g.m.some((m) => m.lane === lane && m.x + ML > X - P / 2 &&
         Math.max(0, m.warn) + (m.x - X - P / 2) / V < 0.7);
       if (!threatened(g.lane)) return { move: 0 };
-      for (const d of [1, -1, 2, -2]) {
+      for (const d of [1, -1, 2, -2, 3, -3, 4, -4]) {
         const lane = g.lane + d;
         if (lane >= 0 && lane < LANES && !threatened(lane)) return { move: Math.sign(d) };
       }
@@ -613,9 +614,9 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       touch: 'Touch: tap the panel',
     };
     g.reset = () => { Object.assign(g, { h: 0, vy: 0, on: true, o: [], next: 140, scroll: 0, sp: 170 }); };
-    g.update = (dt, s, dir, wantJump) => {
+    g.update = (dt, s, inp) => {
       const grav = 1500 * s, jv = 450 * Math.sqrt(s);
-      if (g.on && wantJump()) { g.vy = jv; g.on = false; sfx.jump(); }
+      if (g.on && inp.jump()) { g.vy = jv; g.on = false; sfx.jump(); }
       if (!g.on) {
         g.vy -= grav * dt;
         g.h += g.vy * dt;
@@ -684,109 +685,100 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     return g;
   }
 
-  function makeCatch() {
-    const PY = 258, PW = 50, R = 8, TOP = 38, FLOOR = VH - 6;
+  function makeZones() {
+    // Keep the square inside a box. Each box vanishes; the next one appears while it is still there.
+    const TOP = 38, BOT = 292, LEFT = 8, RIGHT = VW - 8, P = 16, GRACE = 1.0;
     const g = {
-      name: 'Catch', keys: ['A', 'D'], color: tok('--catch'),
-      hint: 'Catch every drop before it lands.',
-      touch: 'Touch: hold the left or right half',
+      name: 'Zones', keys: ['W', 'A', 'S', 'D'], color: tok('--zones'),
+      hint: 'Keep your square inside a box. Boxes vanish.',
+      touch: 'Touch: hold where you want the square to go',
     };
-    g.reset = () => { Object.assign(g, { x: 200, d: [], timer: 0.6, t: 0, last: null, pops: [], ps: 270 }); };
-    g.update = (dt, s, dir) => {
+    const inside = (b) => g.x - P / 2 + 3 >= b.x && g.x + P / 2 - 3 <= b.x + b.w &&
+      g.y - P / 2 + 3 >= b.y && g.y + P / 2 - 3 <= b.y + b.h;
+    function spawn(s, prev) {
+      const k = 1 / Math.sqrt(1 + (s - 1) * 0.7);
+      const lead = 1.8 * k, hold = rand(1.4, 2.4) * k;
+      const w = Math.max(50, rand(72, 100) * k), h = Math.max(42, rand(58, 80) * k);
+      const reach = 0.75 * g.speed * lead;
+      let x = 0, y = 0;
+      for (let tries = 0; tries < 40; tries++) {
+        x = rand(LEFT, RIGHT - w);
+        y = rand(TOP, BOT - h);
+        const d = Math.hypot(x + w / 2 - g.x, y + h / 2 - g.y);
+        if (d >= 80 && d <= reach) break;
+      }
+      const nextAt = prev.dies + hold;
+      g.boxes.push({ x, y, w, h, born: g.t, nextAt, dies: nextAt + lead });
+      sfx.box();
+    }
+    g.reset = () => {
+      Object.assign(g, { x: VW / 2, y: (TOP + BOT) / 2 + 6, out: 0, alarm: 0, t: 0, speed: 175 });
+      g.boxes = [{ x: VW / 2 - 55, y: g.y - 45, w: 110, h: 90, born: -1, nextAt: 1.8, dies: 3.6 }];
+    };
+    g.update = (dt, s, inp) => {
       g.t += dt;
-      g.ps = 270 + 40 * (s - 1);
-      g.x = clamp(g.x + dir * g.ps * dt, PW / 2 + 4, VW - PW / 2 - 4);
-      if ((g.timer -= dt) <= 0) {
-        g.timer = rand(1.3, 2.0) / Math.sqrt(s);
-        const v = rand(80, 100) * s, warn = 0.55, arrive = g.t + warn + (PY - TOP) / v;
-        let x = rand(24, VW - 24);
-        // Keep every drop reachable from the one before it.
-        if (g.last) {
-          const reach = 0.65 * g.ps * Math.max(0, arrive - g.last.arrive);
-          x = clamp(x, g.last.x - reach, g.last.x + reach);
-        }
-        g.last = { x, y: TOP, v, warn, arrive, missed: false, caught: false };
-        g.d.push(g.last);
+      g.speed = 175 + 25 * (s - 1);
+      let vx = inp.vx, vy = inp.vy;
+      if (inp.aim) {
+        const dx = inp.aim.tx - g.x, dy = inp.aim.ty - g.y, d = Math.hypot(dx, dy);
+        const k = Math.min(1, d / 12) / (d || 1);
+        vx = dx * k;
+        vy = dy * k;
       }
-      for (const d of g.d) {
-        if (d.warn > 0) { d.warn -= dt; continue; }
-        d.y += d.v * dt;
-        if (!d.missed && !d.caught && d.y >= PY - 4) {
-          if (Math.abs(d.x - g.x) <= PW / 2 + R * 0.5) { d.caught = true; g.pops.push({ x: d.x, t: 0 }); sfx.catch(); }
-          else d.missed = true;
-        }
-        if (d.missed && d.y >= FLOOR - R) return 'A drop hit the floor.';
-      }
-      g.d = g.d.filter((d) => !d.caught);
-      for (const p of g.pops) p.t += dt;
-      g.pops = g.pops.filter((p) => p.t < 0.4);
+      const m = Math.hypot(vx, vy);
+      if (m > 1) { vx /= m; vy /= m; }
+      g.x = clamp(g.x + vx * g.speed * dt, LEFT + P / 2, RIGHT - P / 2);
+      g.y = clamp(g.y + vy * g.speed * dt, TOP + P / 2, BOT - P / 2);
+      g.boxes = g.boxes.filter((b) => b.dies > g.t);
+      if (g.boxes.length === 1 && g.t >= g.boxes[0].nextAt) spawn(s, g.boxes[0]);
+      if (g.boxes.some(inside)) { g.out = 0; return; }
+      g.out += dt;
+      if ((g.alarm -= dt) <= 0) { sfx.edge(); g.alarm = 0.25; }
+      if (g.out > GRACE) return 'You stayed outside the boxes too long.';
     };
     g.bot = () => {
-      let target = null, soonest = 1e9;
-      for (const d of g.d) {
-        if (d.missed) continue;
-        const tt = d.warn + (PY - d.y) / d.v;
-        if (tt < soonest) { soonest = tt; target = d; }
-      }
-      if (!target) return { dir: 0 };
-      const dx = target.x - g.x;
-      return { dir: dx > 5 ? 1 : dx < -5 ? -1 : 0 };
+      const b = g.boxes[g.boxes.length - 1];
+      const dx = b.x + b.w / 2 - g.x, dy = b.y + b.h / 2 - g.y, d = Math.hypot(dx, dy);
+      return d < 4 ? { vx: 0, vy: 0 } : { vx: dx / d, vy: dy / d };
     };
     g.draw = (c) => {
-      c.fillStyle = alpha(C.ink, 0.28);
-      c.fillRect(-60, TOP - 6, VW + 120, 2);
-      c.fillStyle = C.ink;
-      c.fillRect(-60, FLOOR, VW + 120, 6);
-      for (const d of g.d) {
-        if (d.warn > 0) {
-          if (Math.floor(d.warn * 10) % 2 === 0) {
-            c.fillStyle = C.ink;
-            c.beginPath();
-            c.moveTo(d.x - 7, TOP - 4);
-            c.lineTo(d.x + 7, TOP - 4);
-            c.lineTo(d.x, TOP + 5);
-            c.closePath();
-            c.fill();
-          }
-          continue;
-        }
-        const col = d.missed ? C.fail : C.ink;
-        c.beginPath();
-        c.arc(d.x, d.y, R, 0, Math.PI * 2);
-        c.lineWidth = 3;
-        c.strokeStyle = col;
-        c.stroke();
-        c.beginPath();
-        c.arc(d.x, d.y, 2.5, 0, Math.PI * 2);
-        c.fillStyle = col;
+      c.strokeStyle = alpha(C.ink, 0.15);
+      c.lineWidth = 1.5;
+      c.strokeRect(LEFT, TOP, RIGHT - LEFT, BOT - TOP);
+      for (const b of g.boxes) {
+        const grow = clamp((g.t - b.born) / 0.25, 0, 1);
+        const left = b.dies - g.t;
+        const sc = 0.7 + 0.3 * grow, w = b.w * sc, h = b.h * sc;
+        const blink = left < 0.7 && Math.floor(left * 10) % 2 === 0;
+        rr(c, b.x + (b.w - w) / 2, b.y + (b.h - h) / 2, w, h, 6);
+        c.fillStyle = alpha(C.paper, 0.35 * grow);
         c.fill();
-      }
-      for (const p of g.pops) {
-        const k = p.t / 0.4;
-        c.beginPath();
-        c.arc(p.x, PY - 6, R + k * 18, 0, Math.PI * 2);
-        c.strokeStyle = alpha(C.ink, 1 - k);
-        c.lineWidth = 2;
+        c.lineWidth = 2.5;
+        c.strokeStyle = blink ? alpha(C.ink, 0.25) : C.ink;
         c.stroke();
+        if (grow === 1) {
+          c.fillStyle = alpha(C.ink, 0.5);
+          c.fillRect(b.x + 6, b.y + b.h - 8, (b.w - 12) * clamp(left / (b.dies - b.born), 0, 1), 3);
+        }
       }
-      const l = g.x - PW / 2, r = g.x + PW / 2;
-      c.beginPath();
-      c.moveTo(l, PY - 6);
-      c.lineTo(l + 7, PY + 12);
-      c.lineTo(r - 7, PY + 12);
-      c.lineTo(r, PY - 6);
+      rr(c, g.x - P / 2, g.y - P / 2, P, P, 3);
       c.fillStyle = C.paper;
       c.fill();
       c.lineWidth = 2.5;
-      c.lineJoin = 'round';
-      c.strokeStyle = C.ink;
+      c.strokeStyle = g.out > 0 ? C.fail : C.ink;
       c.stroke();
-      c.lineJoin = 'miter';
+      if (g.out > 0) {
+        c.beginPath();
+        c.arc(g.x, g.y, P, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - g.out / GRACE));
+        c.strokeStyle = C.fail;
+        c.lineWidth = 3;
+        c.stroke();
+      }
     };
     return g;
   }
 
-  const games = [makeBalance(), makeDodge(), makeJump(), makeCatch()];
+  const games = [makeBalance(), makeDodge(), makeZones(), makeJump()];
 
   // ---------- layout ----------
   const QW = (SW - 3 * GAP) / 2, QH = (SH - 3 * GAP) / 2;
@@ -834,14 +826,23 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   const keys = new Set();
   const touches = new Map();
 
-  function dirFor(i) {
-    let neg = false, pos = false;
+  const held = (code) => (keys.has(code) ? 1 : 0);
+  function inputFor(i) {
+    let neg = false, pos = false, aim = null;
     if (i === 0) { neg = keys.has('ArrowLeft'); pos = keys.has('ArrowRight'); }
-    else if (i === 3) { neg = keys.has('KeyA'); pos = keys.has('KeyD'); }
     for (const t of touches.values()) {
-      if (t && t.panel === i) { if (t.zone < 0) neg = true; else pos = true; }
+      if (!t || t.panel !== i) continue;
+      if (t.zone < 0) neg = true; else pos = true;
+      aim = t;
     }
-    return (pos ? 1 : 0) - (neg ? 1 : 0);
+    const zones = i === 2;
+    return {
+      dir: (pos ? 1 : 0) - (neg ? 1 : 0),
+      vx: zones ? held('KeyD') - held('KeyA') : 0,
+      vy: zones ? held('KeyS') - held('KeyW') : 0,
+      aim,
+      jump: wantJump,
+    };
   }
   function wantJump() {
     if (runT - jumpAt <= 0.13) { jumpAt = -99; return true; }
@@ -893,7 +894,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       }
       if (g.phase === 'ready' && runT >= UNLOCK[i]) { g.phase = 'live'; sfx.go(); }
       if (g.phase !== 'live') continue;
-      const res = g.update(dt, s, dirFor(i), wantJump);
+      const res = g.update(dt, s, inputFor(i));
       if (res) { fail(i, res); return; }
     }
   }
@@ -902,7 +903,8 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     for (const g of games) {
       const b = g.bot();
       if (b.move) g.press(b.move);
-      if (g.update(dt, 1.25, b.dir, () => b.jump)) g.reset();
+      const inp = { dir: b.dir || 0, vx: b.vx || 0, vy: b.vy || 0, aim: null, jump: () => !!b.jump };
+      if (g.update(dt, 1.25, inp)) g.reset();
     }
   }
 
@@ -1143,7 +1145,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   }
 
   // ---------- input ----------
-  const GAME_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyA', 'KeyD']);
+  const GAME_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD']);
   addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const code = e.code;
@@ -1179,8 +1181,11 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       if (!p.on || (only !== undefined && i !== only)) continue;
       const inside = sx >= p.x && sx <= p.x + p.w && sy >= p.y && sy <= p.y + p.h;
       if (!inside && only === undefined) continue;
-      const zone = i === 1 ? (sy < p.y + p.h / 2 ? -1 : 1) : (sx < p.x + p.w / 2 ? -1 : 1);
-      return { panel: i, zone };
+      // Pointer position in the game's own 400x300 coordinates.
+      const k = Math.min(p.w / VW, p.h / VH);
+      const tx = (sx - p.x - (p.w - VW * k) / 2) / k, ty = (sy - p.y - (p.h - VH * k) / 2) / k;
+      const zone = i === 1 ? (ty < VH / 2 ? -1 : 1) : (tx < VW / 2 ? -1 : 1);
+      return { panel: i, zone, tx, ty };
     }
     return null;
   }
@@ -1191,7 +1196,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     const t = hit(e);
     touches.set(e.pointerId, t);
     if (t && t.panel === 1 && games[1].phase === 'live') games[1].press(t.zone);
-    if (t && t.panel === 2) jumpAt = runT;
+    if (t && t.panel === 3) jumpAt = runT;
   });
   cv.addEventListener('pointermove', (e) => {
     const t = touches.get(e.pointerId);
