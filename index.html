@@ -275,7 +275,8 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   const rand = (a, b) => a + Math.random() * (b - a);
-  const speedAt = (t) => 1 + Math.max(0, t) / 140;
+  const BASE = 0.8;   // starting pace; the HUD shows speed relative to this
+  const speedAt = (t) => BASE + Math.max(0, t) / 175;
   const fmt = (t) => {
     t = Math.max(0, t);
     if (t < 60) return t.toFixed(2);
@@ -432,7 +433,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     stop() { clearInterval(music.timer); music.timer = 0; },
     pump() {
       if (state !== 'playing' || !soundOn) { music.stop(); return; }
-      const bpm = Math.min(172, 128 * (1 + (speedAt(runT) - 1) * 0.5));
+      const bpm = Math.min(172, 128 * (1 + (speedAt(runT) / BASE - 1) * 0.5));
       const six = 15 / bpm;
       const layers = games.filter((g) => g.phase !== 'hidden').length;
       try {
@@ -468,7 +469,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
   // ---------- games ----------
   function makeBalance() {
-    const PX = 200, PY = 188, L = 148, TH = 8, R = 13, FLOOR = 258;
+    const PX = 200, PY = 188, L = 156, TH = 8, R = 13, FLOOR = 258;
     const g = {
       name: 'Balance', keys: ['←', '→'], color: tok('--balance'),
       hint: 'Tilt the plank. Keep the ball on it.',
@@ -486,7 +487,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       const sb = 1 + (s - 1) * 0.6;
       if ((g.windTimer -= dt) <= 0) {
         g.windTimer = rand(1.2, 2.8);
-        const W = 45 + 30 * (sb - 1);
+        const W = 40 + 30 * (sb - 1);
         g.windT = rand(-W, W);
       }
       g.wind += (g.windT - g.wind) * Math.min(1, dt * 1.8);
@@ -501,7 +502,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
         if (k.x > VW + 40) k.x -= VW + 80;
         if (k.x < -40) k.x += VW + 80;
       }
-      if (Math.abs(g.u) > L + R * 0.6) return 'The ball rolled off the plank.';
+      if (Math.abs(g.u) > L + R) return 'The ball rolled off the plank.';
     };
     g.onFail = () => {
       const cs = Math.cos(g.th), sn = Math.sin(g.th), off = TH / 2 + R;
@@ -571,7 +572,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
   function makeDodge() {
     // Five fixed boxes stacked down the left edge. Each arrow flies at a constant speed; new arrows
-    // start slow and launch a little faster over the first 90 s of Dodge, up to 165 px/s.
+    // start slow and launch a little faster over the first 120 s of Dodge, up to 140 px/s.
     const X = 48, P = 18, B = 38, LANES = 5, TOP = 38, LH = 50, ML = 34;
     const laneY = (l) => TOP + LH * l + LH / 2;
     const g = {
@@ -586,19 +587,19 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     };
     g.update = (dt) => {
       g.t += dt;
-      const ramp = Math.min(1, g.t / 90);
+      const ramp = Math.min(1, g.t / 120);
       g.y += (laneY(g.lane) - g.y) * Math.min(1, dt * 30);
       if ((g.timer -= dt) <= 0) {
-        // At least 0.9 s apart, so two arrows never cross the boxes at the same moment.
-        g.timer = Math.max(0.9, rand(1.8, 2.6) * (1 - 0.35 * ramp));
-        const lane = Math.random() < 0.5 ? g.lane : Math.floor(Math.random() * LANES);
-        g.m.push({ x: VW + 4, lane, warn: 1.0, v: 110 + 55 * ramp });
+        // At least 1 s apart, so two arrows never cross the boxes at the same moment.
+        g.timer = Math.max(1.0, rand(2.2, 3.2) * (1 - 0.3 * ramp));
+        const lane = Math.random() < 0.4 ? g.lane : Math.floor(Math.random() * LANES);
+        g.m.push({ x: VW + 4, lane, warn: 1.2, v: 90 + 50 * ramp });
         sfx.warn();
       }
       for (const m of g.m) {
         if (m.warn > 0) { m.warn -= dt; continue; }
         m.x -= m.v * dt;
-        if (m.lane === g.lane && m.x < X + P / 2 - 2 && m.x + ML > X - P / 2 + 2) return 'An arrow hit you.';
+        if (m.lane === g.lane && m.x < X + P / 2 - 4 && m.x + ML > X - P / 2 + 4) return 'An arrow hit you.';
       }
       g.m = g.m.filter((m) => m.x > -ML - 20);
     };
@@ -684,13 +685,13 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       g.scroll += dx;
       g.next -= dx;
       if (g.next <= 0) {
-        g.o.push({ x: VW + 20, w: Math.round(rand(14, 28)), h: Math.round(rand(18, 40)) });
-        g.next = rand(200, 430);
+        g.o.push({ x: VW + 20, w: Math.round(rand(12, 24)), h: Math.round(rand(16, 32)) });
+        g.next = rand(240, 480);
       }
       const base = GROUND - g.h;
       for (const o of g.o) {
         o.x -= dx;
-        if (GROUND - o.h < base - 2 && Math.abs(RX - clamp(RX, o.x, o.x + o.w)) < RR - 3) return 'You ran into a block.';
+        if (GROUND - o.h < base - 4 && Math.abs(RX - clamp(RX, o.x, o.x + o.w)) < RR - 5) return 'You ran into a block.';
       }
       g.o = g.o.filter((o) => o.x + o.w > -30);
     };
@@ -744,7 +745,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
   function makeZones() {
     // Boxes pop up with a countdown. Touch each one with the square before its countdown reaches zero.
-    const TOP = 38, BOT = 292, LEFT = 8, RIGHT = VW - 8, P = 16, B = 46, MAX = 3;
+    const TOP = 38, BOT = 292, LEFT = 8, RIGHT = VW - 8, P = 16, B = 52, MAX = 3;
     const g = {
       name: 'Zones', keys: ['W', 'A', 'S', 'D'], color: tok('--zones'),
       hint: 'Touch every box before its timer hits zero.',
@@ -753,8 +754,8 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     const touching = (b) => g.x + P / 2 > b.x && g.x - P / 2 < b.x + B && g.y + P / 2 > b.y && g.y - P / 2 < b.y + B;
     function spawn(s) {
       const k = 1 / Math.sqrt(1 + (s - 1) * 0.7);
-      const time = Math.max(3.5, 6 * k);
-      const reach = g.speed * (time - 1.8);   // always leave time to get there
+      const time = Math.max(4.5, 7.5 * k);
+      const reach = g.speed * (time - 2.2);   // always leave time to get there
       let x = 0, y = 0;
       for (let tries = 0; tries < 60; tries++) {
         x = rand(LEFT + 4, RIGHT - B - 4);
@@ -767,13 +768,13 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       sfx.box();
     }
     g.reset = () => {
-      Object.assign(g, { x: VW / 2, y: (TOP + BOT) / 2, t: 0, speed: 175, next: 2.4, pops: [], expired: null });
+      Object.assign(g, { x: VW / 2, y: (TOP + BOT) / 2, t: 0, speed: 190, next: 3.0, pops: [], expired: null });
       // One box waits during the warm-up so its countdown is visible before the task goes live.
-      g.boxes = [{ x: VW / 2 + 60, y: (TOP + BOT) / 2 - 80, born: -1, time: 6, left: 6, shown: 6 }];
+      g.boxes = [{ x: VW / 2 + 60, y: (TOP + BOT) / 2 - 80, born: -1, time: 7.5, left: 7.5, shown: 8 }];
     };
     g.update = (dt, s, inp) => {
       g.t += dt;
-      g.speed = 175 + 25 * (s - 1);
+      g.speed = Math.max(190, 190 + 25 * (s - 1));
       let vx = inp.vx, vy = inp.vy;
       if (inp.aim) {
         const dx = inp.aim.tx - g.x, dy = inp.aim.ty - g.y, d = Math.hypot(dx, dy);
@@ -804,7 +805,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       for (const p of g.pops) p.t += dt;
       g.pops = g.pops.filter((p) => p.t < 0.35);
       if ((g.next -= dt) <= 0) {
-        g.next = rand(2.0, 3.2) / Math.sqrt(1 + (s - 1) * 0.7);
+        g.next = rand(2.5, 4.0) / Math.sqrt(1 + (s - 1) * 0.7);
         if (g.boxes.length < MAX) spawn(s);
       }
     };
@@ -928,7 +929,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     };
   }
   function wantJump() {
-    if (runT - jumpAt <= 0.13) { jumpAt = -99; return true; }
+    if (runT - jumpAt <= 0.18) { jumpAt = -99; return true; }
     return false;
   }
 
@@ -987,7 +988,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       const b = g.bot();
       if (b.move) g.press(b.move);
       const inp = { dir: b.dir || 0, vx: b.vx || 0, vy: b.vy || 0, aim: null, jump: () => !!b.jump };
-      if (g.update(dt, 1.25, inp)) g.reset();
+      if (g.update(dt, 1, inp)) g.reset();
     }
   }
 
@@ -1180,7 +1181,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   function updateHud() {
     const inRun = state !== 'attract';
     setText('time', inRun ? fmt(runT) : '0.00');
-    setText('spd', (inRun ? speedAt(runT) : 1).toFixed(2) + '×');
+    setText('spd', (inRun ? speedAt(runT) / BASE : 1).toFixed(2) + '×');
     setText('best', best > 0 ? fmt(best) + unit(best) : '–');
     const n = inRun ? games.filter((g) => g.phase !== 'hidden').length : 0;
     if (hud.n !== n) {
