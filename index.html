@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Multitask</title>
-<meta name="description" content="Keep four tiny games alive at once: Balance, Dodge, Zones and Jump, faster and faster. A browser remake of the Flash game Multitask.">
+<meta name="description" content="Keep four tiny games alive at once: Balance, Dodge, Zones and Hover, faster and faster. A browser remake of the Flash game Multitask.">
 <meta name="theme-color" content="#13141c">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Multitask">
@@ -25,7 +25,7 @@
   --balance: #9dc3e3;
   --dodge: #f0a898;
   --zones: #a7d5af;
-  --jump: #f2d17c;
+  --hover: #f2d17c;
   --fail: #ff5b4f;
   --font-display: "Unbounded", "Arial Black", system-ui, sans-serif;
   --font-mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -62,7 +62,7 @@ body {
 .brand span:nth-child(1) { color: var(--balance); }
 .brand span:nth-child(2) { color: var(--dodge); }
 .brand span:nth-child(3) { color: var(--zones); }
-.brand span:nth-child(4) { color: var(--jump); }
+.brand span:nth-child(4) { color: var(--hover); }
 .readout { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
 .stat { display: flex; align-items: baseline; gap: 8px; }
 .lbl { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
@@ -75,7 +75,7 @@ body {
 .tasks i.on:nth-child(1) { background: var(--balance); }
 .tasks i.on:nth-child(2) { background: var(--dodge); }
 .tasks i.on:nth-child(3) { background: var(--zones); }
-.tasks i.on:nth-child(4) { background: var(--jump); }
+.tasks i.on:nth-child(4) { background: var(--hover); }
 
 button {
   font: 500 12px/1 var(--font-mono);
@@ -124,7 +124,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .title .t1 { color: var(--balance); }
 .title .t2 { color: var(--dodge); }
 .title .t3 { color: var(--zones); }
-.title .t4 { color: var(--jump); }
+.title .t4 { color: var(--hover); }
 .lede { margin: 0; max-width: 52ch; color: var(--paper); text-wrap: pretty; }
 .ctrls {
   list-style: none;
@@ -210,7 +210,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .tk i.on:nth-child(1) { background: var(--balance); }
 .tk i.on:nth-child(2) { background: var(--dodge); }
 .tk i.on:nth-child(3) { background: var(--zones); }
-.tk i.on:nth-child(4) { background: var(--jump); }
+.tk i.on:nth-child(4) { background: var(--hover); }
 .board .empty, .board .where { margin: 0; font-size: 12px; color: var(--muted); }
 .name-field { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
 #nameInput {
@@ -280,7 +280,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
             <li style="--c: var(--balance)"><span class="nm">Balance</span><span class="ks"><kbd>←</kbd><kbd>→</kbd></span><span class="ht">Tilt the plank so the ball stays on.</span></li>
             <li style="--c: var(--dodge)"><span class="nm">Dodge</span><span class="ks"><kbd>↑</kbd><kbd>↓</kbd></span><span class="ht">Hop between the boxes to dodge the arrows.</span></li>
             <li style="--c: var(--zones)"><span class="nm">Zones</span><span class="ks"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span class="ht">Touch every box before its countdown hits zero.</span></li>
-            <li style="--c: var(--jump)"><span class="nm">Jump</span><span class="ks"><kbd>Space</kbd></span><span class="ht">Hop over the blocks.</span></li>
+            <li style="--c: var(--hover)"><span class="nm">Hover</span><span class="ks"><kbd>Space</kbd></span><span class="ht">Hold to rise, let go to drop. Miss the walls.</span></li>
           </ul>
           <div class="row">
             <button type="button" class="go" id="startBtn">Start <kbd>Space</kbd></button>
@@ -323,7 +323,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 </main>
 
 <footer class="foot">
-  <p>Touch: hold either half of Balance to tilt it, tap the top or bottom of Dodge to switch boxes, hold where the Zones square should go, and tap Jump to hop.</p>
+  <p>Touch: hold either half of Balance to tilt it, tap the top or bottom of Dodge to switch boxes, hold where the Zones square should go, and hold Hover to rise.</p>
   <p>Inspired by the Flash game Multitask by IcyLime.</p>
 </footer>
 
@@ -527,7 +527,6 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     try { voice(actx.currentTime + delay, f1, f2, dur, type, vol, master); } catch { /* audio unavailable */ }
   }
   const sfx = {
-    jump: () => tone(380, 640, 0.1, 'square', 0.07),
     warn: () => tone(1250, 950, 0.05, 'square', 0.035),
     hop: () => tone(520, 700, 0.04, 'square', 0.04),
     box: () => tone(660, 880, 0.08, 'triangle', 0.08),
@@ -822,79 +821,91 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     return g;
   }
 
-  function makeJump() {
-    const GROUND = 236, RX = 80, RR = 16;
+  function makeHover() {
+    // Hold Space to rise, let go to drop. Walls come from the ceiling, the floor, or both with a gap.
+    const TOP = 36, BOT = 290, PX = 90, R = 11, HIT = 8;
     const g = {
-      name: 'Jump', keys: ['Space'], color: tok('--jump'),
-      hint: 'Hop over the blocks.',
-      touch: 'Touch: tap the panel',
+      name: 'Hover', keys: ['Space'], color: tok('--hover'),
+      hint: 'Hold Space to rise. Let go to drop.',
+      touch: 'Touch: hold the panel to rise',
     };
-    g.reset = () => { Object.assign(g, { h: 0, vy: 0, on: true, o: [], next: 140, scroll: 0, sp: 170 }); };
-    g.update = (dt, s, inp) => {
-      const grav = 1500 * s, jv = 450 * Math.sqrt(s);
-      if (g.on && inp.jump()) { g.vy = jv; g.on = false; sfx.jump(); }
-      if (!g.on) {
-        g.vy -= grav * dt;
-        g.h += g.vy * dt;
-        if (g.h <= 0) { g.h = 0; g.vy = 0; g.on = true; }
+    g.reset = () => { Object.assign(g, { y: (TOP + BOT) / 2, vy: 0, w: [], next: 160, scroll: 0, sp: 125, hold: false }); };
+    function spawn() {
+      const width = rand(24, 34), x = VW + 10, kind = Math.random();
+      if (kind < 0.3) {
+        const gap = rand(105, 130), mid = rand(TOP + 64, BOT - 64);
+        g.w.push({ x, width, y: TOP, h: mid - gap / 2 - TOP }, { x, width, y: mid + gap / 2, h: BOT - mid - gap / 2 });
+      } else {
+        const h = rand(70, 135);
+        g.w.push(kind < 0.65 ? { x, width, y: TOP, h } : { x, width, y: BOT - h, h });
       }
-      g.sp = 170 * s;
+    }
+    g.update = (dt, s, inp) => {
+      g.hold = inp.hold;
+      g.vy = clamp(g.vy + (g.hold ? -1250 : 560) * dt, -200, 220);
+      g.y += g.vy * dt;
+      // The ceiling and floor are safe; only the walls count.
+      if (g.y < TOP + R) { g.y = TOP + R; g.vy = Math.max(0, g.vy); }
+      if (g.y > BOT - R) { g.y = BOT - R; g.vy = Math.min(0, g.vy); }
+      g.sp = 125 * s;
       const dx = g.sp * dt;
       g.scroll += dx;
-      g.next -= dx;
-      if (g.next <= 0) {
-        g.o.push({ x: VW + 20, w: Math.round(rand(12, 24)), h: Math.round(rand(16, 32)) });
-        g.next = rand(240, 480);
+      if ((g.next -= dx) <= 0) { spawn(); g.next = rand(190, 300); }
+      for (const w of g.w) {
+        w.x -= dx;
+        const cx = clamp(PX, w.x, w.x + w.width), cy = clamp(g.y, w.y, w.y + w.h);
+        if ((PX - cx) ** 2 + (g.y - cy) ** 2 < HIT * HIT) return 'You hit a wall.';
       }
-      const base = GROUND - g.h;
-      for (const o of g.o) {
-        o.x -= dx;
-        if (GROUND - o.h < base - 4 && Math.abs(RX - clamp(RX, o.x, o.x + o.w)) < RR - 5) return 'You ran into a block.';
-      }
-      g.o = g.o.filter((o) => o.x + o.w > -30);
+      g.w = g.w.filter((w) => w.x + w.width > -20);
     };
     g.bot = () => {
-      const airtime = 0.6 / Math.sqrt(g.sp / 170);
-      for (const o of g.o) {
-        if (o.x + o.w < RX - RR) continue;
-        const d = o.x + o.w / 2 - RX;
-        return { dir: 0, jump: g.on && d > 0 && d <= (g.sp * airtime) / 2 };
+      // Aim for the middle of the open space at the next wall.
+      let target = (TOP + BOT) / 2;
+      const ahead = g.w.filter((w) => w.x + w.width > PX - R);
+      if (ahead.length) {
+        const x0 = Math.min(...ahead.map((w) => w.x));
+        let lo = TOP, hi = BOT;
+        for (const w of ahead) {
+          if (w.x !== x0) continue;
+          if (w.y === TOP) lo = Math.max(lo, w.y + w.h); else hi = Math.min(hi, w.y);
+        }
+        target = (lo + hi) / 2;
       }
-      return { dir: 0, jump: false };
+      return { hold: g.y + g.vy * 0.25 > target };
     };
     g.draw = (c) => {
       c.fillStyle = C.ink;
-      c.fillRect(-60, GROUND, VW + 120, 3);
-      c.fillStyle = alpha(C.ink, 0.35);
+      c.fillRect(-60, TOP - 3, VW + 120, 3);
+      c.fillRect(-60, BOT, VW + 120, 3);
+      c.fillStyle = alpha(C.ink, 0.3);
       for (let k = 0; k < 12; k++) {
         const x = (((k * 44 - g.scroll) % 528) + 528) % 528 - 64;
-        c.fillRect(x, GROUND + 14, 14, 2);
-      }
-      c.fillStyle = alpha(C.ink, 0.2);
-      for (let k = 0; k < 6; k++) {
-        const x = (((k * 90 - g.scroll * 0.5) % 540) + 540) % 540 - 70;
-        c.fillRect(x, GROUND + 30, 28, 2);
+        c.fillRect(x, TOP + 5, 14, 2);
+        c.fillRect(x + 22, BOT - 7, 14, 2);
       }
       c.fillStyle = C.ink;
-      for (const o of g.o) c.fillRect(o.x, GROUND - o.h, o.w, o.h);
-      if (g.h > 0) {
-        const k = Math.max(0.25, 1 - g.h / 80);
-        c.fillStyle = alpha(C.ink, 0.25 * k);
+      for (const w of g.w) c.fillRect(w.x, w.y, w.width, w.h);
+      if (g.hold) {
+        c.strokeStyle = alpha(C.ink, 0.45);
+        c.lineWidth = 2;
+        c.lineCap = 'round';
         c.beginPath();
-        c.ellipse(RX, GROUND + 1.5, RR * k, 3 * k, 0, 0, Math.PI * 2);
-        c.fill();
+        for (const off of [-4, 0, 4]) {
+          c.moveTo(PX + off, g.y + R + 3);
+          c.lineTo(PX + off * 1.4, g.y + R + 10 + 3 * Math.sin(g.scroll * 0.4 + off));
+        }
+        c.stroke();
+        c.lineCap = 'butt';
       }
-      const cy = GROUND - g.h;
       c.beginPath();
-      c.arc(RX, cy, RR, Math.PI, 0);
-      c.closePath();
+      c.arc(PX, g.y, R, 0, Math.PI * 2);
       c.fillStyle = C.paper;
       c.fill();
       c.lineWidth = 2.5;
       c.strokeStyle = C.ink;
       c.stroke();
       c.beginPath();
-      c.arc(RX + 6, cy - 8, 2.2, 0, Math.PI * 2);
+      c.arc(PX + 4, g.y - 3, 2.2, 0, Math.PI * 2);
       c.fillStyle = C.ink;
       c.fill();
     };
@@ -1020,7 +1031,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     return g;
   }
 
-  const games = [makeBalance(), makeDodge(), makeZones(), makeJump()];
+  const games = [makeBalance(), makeDodge(), makeZones(), makeHover()];
 
   // ---------- layout ----------
   const QW = (SW - 3 * GAP) / 2, QH = (SH - 3 * GAP) / 2;
@@ -1064,7 +1075,6 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   let runT = 0, acc = 0, dieT = 0, overAt = 0;
   let failIdx = -1, failReason = '', newBest = false;
   let best = Number(store.get('multitask.best')) || 0;
-  let jumpAt = -99;
   const keys = new Set();
   const touches = new Map();
 
@@ -1083,12 +1093,8 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       vx: zones ? held('KeyD') - held('KeyA') : 0,
       vy: zones ? held('KeyS') - held('KeyW') : 0,
       aim,
-      jump: wantJump,
+      hold: i === 3 && (keys.has('Space') || aim !== null),
     };
-  }
-  function wantJump() {
-    if (runT - jumpAt <= 0.18) { jumpAt = -99; return true; }
-    return false;
   }
 
   function startAttract() {
@@ -1108,7 +1114,6 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     runT = -FIRST_READY;
     acc = 0;
     failIdx = -1;
-    jumpAt = -99;
     state = 'playing';
     setLayout(1);
     show(null);
@@ -1145,7 +1150,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     for (const g of games) {
       const b = g.bot();
       if (b.move) g.press(b.move);
-      const inp = { dir: b.dir || 0, vx: b.vx || 0, vy: b.vy || 0, aim: null, jump: () => !!b.jump };
+      const inp = { dir: b.dir || 0, vx: b.vx || 0, vy: b.vy || 0, aim: null, hold: !!b.hold };
       if (g.update(dt, 1, inp)) g.reset();
     }
   }
@@ -1410,7 +1415,6 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     if (code === 'KeyP' || code === 'Escape' || (state === 'paused' && code === 'Enter')) { togglePause(); return; }
     if (state !== 'playing') return;
     keys.add(code);
-    if (code === 'Space' && !e.repeat) jumpAt = runT;
     if ((code === 'ArrowUp' || code === 'ArrowDown') && !e.repeat && games[1].phase === 'live') {
       games[1].press(code === 'ArrowUp' ? -1 : 1);
     }
@@ -1445,7 +1449,6 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     const t = hit(e);
     touches.set(e.pointerId, t);
     if (t && t.panel === 1 && games[1].phase === 'live') games[1].press(t.zone);
-    if (t && t.panel === 3) jumpAt = runT;
   });
   cv.addEventListener('pointermove', (e) => {
     const t = touches.get(e.pointerId);
