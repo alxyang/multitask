@@ -10,7 +10,7 @@ You start with one game. A new one joins at 0:12, 0:27 and 0:45, and everything 
 |---|---|---|
 | Balance | ← → | Tilt the plank so the ball stays on. Watch the wind. |
 | Dodge | ↑ ↓ | Hop between five boxes to dodge the arrows. |
-| Zones | W A S D | Keep your square inside a box. Move into the next one before it vanishes. |
+| Zones | W A S D | Touch every box with your square before its countdown hits zero. |
 | Jump | Space | Hop over the blocks. |
 
 P pauses and M mutes. On a touch screen, hold either half of Balance to tilt it, tap the top or bottom of Dodge to switch boxes, hold where the Zones square should go, and tap Jump to hop.

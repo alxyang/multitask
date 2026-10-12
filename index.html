@@ -212,7 +212,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
         <ul class="ctrls">
           <li style="--c: var(--balance)"><span class="nm">Balance</span><span class="ks"><kbd>←</kbd><kbd>→</kbd></span><span class="ht">Tilt the plank so the ball stays on.</span></li>
           <li style="--c: var(--dodge)"><span class="nm">Dodge</span><span class="ks"><kbd>↑</kbd><kbd>↓</kbd></span><span class="ht">Hop between the boxes to dodge the arrows.</span></li>
-          <li style="--c: var(--zones)"><span class="nm">Zones</span><span class="ks"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span class="ht">Keep your square inside a box. Move on before it vanishes.</span></li>
+          <li style="--c: var(--zones)"><span class="nm">Zones</span><span class="ks"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span class="ht">Touch every box before its countdown hits zero.</span></li>
           <li style="--c: var(--jump)"><span class="nm">Jump</span><span class="ks"><kbd>Space</kbd></span><span class="ht">Hop over the blocks.</span></li>
         </ul>
         <div class="row">
@@ -372,6 +372,8 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     warn: () => tone(1250, 950, 0.05, 'square', 0.035),
     hop: () => tone(520, 700, 0.04, 'square', 0.04),
     box: () => tone(660, 880, 0.08, 'triangle', 0.08),
+    clear: () => { tone(880, 880, 0.06, 'sine', 0.14); tone(1320, 1320, 0.1, 'sine', 0.1, 0.05); },
+    count: () => tone(1175, 1175, 0.04, 'square', 0.04),
     edge: () => tone(620, 620, 0.06, 'triangle', 0.12),
     tick: () => tone(1046, 1046, 0.05, 'triangle', 0.12),
     incoming: () => { tone(523, 523, 0.12, 'triangle', 0.16); tone(784, 784, 0.2, 'triangle', 0.16, 0.13); },
@@ -568,8 +570,9 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   }
 
   function makeDodge() {
-    // Five fixed boxes stacked down the left edge; arrows fly along their rows at one constant speed.
-    const X = 48, P = 18, B = 38, LANES = 5, TOP = 38, LH = 50, ML = 34, V = 165;
+    // Five fixed boxes stacked down the left edge. Each arrow flies at a constant speed; new arrows
+    // start slow and launch a little faster over the first 90 s of Dodge, up to 165 px/s.
+    const X = 48, P = 18, B = 38, LANES = 5, TOP = 38, LH = 50, ML = 34;
     const laneY = (l) => TOP + LH * l + LH / 2;
     const g = {
       name: 'Dodge', keys: ['↑', '↓'], color: tok('--dodge'),
@@ -581,26 +584,27 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       const lane = clamp(g.lane + d, 0, LANES - 1);
       if (lane !== g.lane) { g.lane = lane; sfx.hop(); }
     };
-    g.update = (dt, s) => {
+    g.update = (dt) => {
       g.t += dt;
+      const ramp = Math.min(1, g.t / 90);
       g.y += (laneY(g.lane) - g.y) * Math.min(1, dt * 30);
       if ((g.timer -= dt) <= 0) {
         // At least 0.9 s apart, so two arrows never cross the boxes at the same moment.
-        g.timer = Math.max(0.9, rand(1.4, 2.2) / Math.sqrt(s));
+        g.timer = Math.max(0.9, rand(1.8, 2.6) * (1 - 0.35 * ramp));
         const lane = Math.random() < 0.5 ? g.lane : Math.floor(Math.random() * LANES);
-        g.m.push({ x: VW + 4, lane, warn: 0.8 });
+        g.m.push({ x: VW + 4, lane, warn: 1.0, v: 110 + 55 * ramp });
         sfx.warn();
       }
       for (const m of g.m) {
         if (m.warn > 0) { m.warn -= dt; continue; }
-        m.x -= V * dt;
+        m.x -= m.v * dt;
         if (m.lane === g.lane && m.x < X + P / 2 - 2 && m.x + ML > X - P / 2 + 2) return 'An arrow hit you.';
       }
       g.m = g.m.filter((m) => m.x > -ML - 20);
     };
     g.bot = () => {
       const threatened = (lane) => g.m.some((m) => m.lane === lane && m.x + ML > X - P / 2 &&
-        Math.max(0, m.warn) + (m.x - X - P / 2) / V < 0.7);
+        Math.max(0, m.warn) + (m.x - X - P / 2) / m.v < 0.7);
       if (!threatened(g.lane)) return { move: 0 };
       for (const d of [1, -1, 2, -2, 3, -3, 4, -4]) {
         const lane = g.lane + d;
@@ -739,34 +743,33 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   }
 
   function makeZones() {
-    // Keep the square inside a box. Each box vanishes; the next one appears while it is still there.
-    const TOP = 38, BOT = 292, LEFT = 8, RIGHT = VW - 8, P = 16, GRACE = 1.0;
+    // Boxes pop up with a countdown. Touch each one with the square before its countdown reaches zero.
+    const TOP = 38, BOT = 292, LEFT = 8, RIGHT = VW - 8, P = 16, B = 46, MAX = 3;
     const g = {
       name: 'Zones', keys: ['W', 'A', 'S', 'D'], color: tok('--zones'),
-      hint: 'Keep your square inside a box. Boxes vanish.',
+      hint: 'Touch every box before its timer hits zero.',
       touch: 'Touch: hold where you want the square to go',
     };
-    const inside = (b) => g.x - P / 2 + 3 >= b.x && g.x + P / 2 - 3 <= b.x + b.w &&
-      g.y - P / 2 + 3 >= b.y && g.y + P / 2 - 3 <= b.y + b.h;
-    function spawn(s, prev) {
+    const touching = (b) => g.x + P / 2 > b.x && g.x - P / 2 < b.x + B && g.y + P / 2 > b.y && g.y - P / 2 < b.y + B;
+    function spawn(s) {
       const k = 1 / Math.sqrt(1 + (s - 1) * 0.7);
-      const lead = 1.8 * k, hold = rand(1.4, 2.4) * k;
-      const w = Math.max(50, rand(72, 100) * k), h = Math.max(42, rand(58, 80) * k);
-      const reach = 0.75 * g.speed * lead;
+      const time = Math.max(3.5, 6 * k);
+      const reach = g.speed * (time - 1.8);   // always leave time to get there
       let x = 0, y = 0;
-      for (let tries = 0; tries < 40; tries++) {
-        x = rand(LEFT, RIGHT - w);
-        y = rand(TOP, BOT - h);
-        const d = Math.hypot(x + w / 2 - g.x, y + h / 2 - g.y);
-        if (d >= 80 && d <= reach) break;
+      for (let tries = 0; tries < 60; tries++) {
+        x = rand(LEFT + 4, RIGHT - B - 4);
+        y = rand(TOP + 4, BOT - B - 4);
+        const d = Math.hypot(x + B / 2 - g.x, y + B / 2 - g.y);
+        const clear = g.boxes.every((b) => Math.abs(b.x - x) > B + 10 || Math.abs(b.y - y) > B + 10);
+        if (d >= 70 && d <= reach && clear) break;
       }
-      const nextAt = prev.dies + hold;
-      g.boxes.push({ x, y, w, h, born: g.t, nextAt, dies: nextAt + lead });
+      g.boxes.push({ x, y, born: g.t, time, left: time, shown: Math.ceil(time) });
       sfx.box();
     }
     g.reset = () => {
-      Object.assign(g, { x: VW / 2, y: (TOP + BOT) / 2 + 6, out: 0, alarm: 0, t: 0, speed: 175 });
-      g.boxes = [{ x: VW / 2 - 55, y: g.y - 45, w: 110, h: 90, born: -1, nextAt: 1.8, dies: 3.6 }];
+      Object.assign(g, { x: VW / 2, y: (TOP + BOT) / 2, t: 0, speed: 175, next: 2.4, pops: [], expired: null });
+      // One box waits during the warm-up so its countdown is visible before the task goes live.
+      g.boxes = [{ x: VW / 2 + 60, y: (TOP + BOT) / 2 - 80, born: -1, time: 6, left: 6, shown: 6 }];
     };
     g.update = (dt, s, inp) => {
       g.t += dt;
@@ -782,51 +785,78 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       if (m > 1) { vx /= m; vy /= m; }
       g.x = clamp(g.x + vx * g.speed * dt, LEFT + P / 2, RIGHT - P / 2);
       g.y = clamp(g.y + vy * g.speed * dt, TOP + P / 2, BOT - P / 2);
-      g.boxes = g.boxes.filter((b) => b.dies > g.t);
-      if (g.boxes.length === 1 && g.t >= g.boxes[0].nextAt) spawn(s, g.boxes[0]);
-      if (g.boxes.some(inside)) { g.out = 0; return; }
-      g.out += dt;
-      if ((g.alarm -= dt) <= 0) { sfx.edge(); g.alarm = 0.25; }
-      if (g.out > GRACE) return 'You stayed outside the boxes too long.';
+      for (const b of g.boxes) {
+        if (touching(b)) {
+          b.hit = true;
+          g.pops.push({ x: b.x, y: b.y, t: 0 });
+          sfx.clear();
+          continue;
+        }
+        b.left -= dt;
+        const shown = Math.ceil(b.left);
+        if (shown < b.shown) {
+          b.shown = shown;
+          if (shown > 0 && shown <= 2) sfx.count();
+        }
+        if (b.left <= 0) { g.expired = b; return 'A box’s countdown ran out.'; }
+      }
+      g.boxes = g.boxes.filter((b) => !b.hit);
+      for (const p of g.pops) p.t += dt;
+      g.pops = g.pops.filter((p) => p.t < 0.35);
+      if ((g.next -= dt) <= 0) {
+        g.next = rand(2.0, 3.2) / Math.sqrt(1 + (s - 1) * 0.7);
+        if (g.boxes.length < MAX) spawn(s);
+      }
     };
     g.bot = () => {
-      const b = g.boxes[g.boxes.length - 1];
-      const dx = b.x + b.w / 2 - g.x, dy = b.y + b.h / 2 - g.y, d = Math.hypot(dx, dy);
+      let target = null;
+      // The demo waits a moment before going for a box, so its countdown shows on the start screen.
+      for (const b of g.boxes) {
+        if (g.t - b.born < 1.5 && b.left > 2.5) continue;
+        if (!target || b.left < target.left) target = b;
+      }
+      if (!target) return { vx: 0, vy: 0 };
+      const dx = target.x + B / 2 - g.x, dy = target.y + B / 2 - g.y, d = Math.hypot(dx, dy);
       return d < 4 ? { vx: 0, vy: 0 } : { vx: dx / d, vy: dy / d };
     };
     g.draw = (c) => {
       c.strokeStyle = alpha(C.ink, 0.15);
       c.lineWidth = 1.5;
       c.strokeRect(LEFT, TOP, RIGHT - LEFT, BOT - TOP);
+      for (const p of g.pops) {
+        const k = p.t / 0.35, grow = 10 * k;
+        rr(c, p.x - grow, p.y - grow, B + 2 * grow, B + 2 * grow, 8);
+        c.strokeStyle = alpha(C.ink, 1 - k);
+        c.lineWidth = 2;
+        c.stroke();
+      }
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
       for (const b of g.boxes) {
-        const grow = clamp((g.t - b.born) / 0.25, 0, 1);
-        const left = b.dies - g.t;
-        const sc = 0.7 + 0.3 * grow, w = b.w * sc, h = b.h * sc;
-        const blink = left < 0.7 && Math.floor(left * 10) % 2 === 0;
-        rr(c, b.x + (b.w - w) / 2, b.y + (b.h - h) / 2, w, h, 6);
-        c.fillStyle = alpha(C.paper, 0.35 * grow);
+        const sc = 0.6 + 0.4 * clamp((g.t - b.born) / 0.2, 0, 1);
+        const urgent = b.left <= 2;
+        const flash = b === g.expired || (urgent && Math.floor(b.left * 8) % 2 === 0);
+        const w = B * sc, cx = b.x + B / 2, cy = b.y + B / 2;
+        rr(c, cx - w / 2, cy - w / 2, w, w, 7);
+        c.fillStyle = alpha(C.paper, 0.55);
         c.fill();
         c.lineWidth = 2.5;
-        c.strokeStyle = blink ? alpha(C.ink, 0.25) : C.ink;
+        c.strokeStyle = flash ? C.fail : C.ink;
         c.stroke();
-        if (grow === 1) {
-          c.fillStyle = alpha(C.ink, 0.5);
-          c.fillRect(b.x + 6, b.y + b.h - 8, (b.w - 12) * clamp(left / (b.dies - b.born), 0, 1), 3);
-        }
+        c.fillStyle = urgent ? C.fail : alpha(C.ink, 0.5);
+        c.fillRect(cx - w / 2 + 6, cy + w / 2 - 8, (w - 12) * clamp(b.left / b.time, 0, 1), 3);
+        c.fillStyle = urgent ? C.fail : C.ink;
+        c.font = `800 ${Math.round(20 * sc)}px ${FD}`;
+        c.fillText(String(Math.max(0, Math.ceil(b.left))), cx, cy - 2);
       }
+      c.textAlign = 'left';
+      c.textBaseline = 'alphabetic';
       rr(c, g.x - P / 2, g.y - P / 2, P, P, 3);
       c.fillStyle = C.paper;
       c.fill();
       c.lineWidth = 2.5;
-      c.strokeStyle = g.out > 0 ? C.fail : C.ink;
+      c.strokeStyle = C.ink;
       c.stroke();
-      if (g.out > 0) {
-        c.beginPath();
-        c.arc(g.x, g.y, P, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - g.out / GRACE));
-        c.strokeStyle = C.fail;
-        c.lineWidth = 3;
-        c.stroke();
-      }
     };
     return g;
   }
