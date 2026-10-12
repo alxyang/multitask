@@ -117,7 +117,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .card { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 18px; }
 .title {
   margin: 0;
-  font: 900 clamp(38px, 7.4vw, 80px)/0.92 var(--font-display);
+  font: 900 clamp(36px, 6.2vw, 72px)/0.92 var(--font-display);
   letter-spacing: -0.01em;
 }
 .title span { display: inline-block; }
@@ -165,7 +165,73 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .big small { font-size: 0.4em; color: var(--muted); margin-left: 0.1em; }
 .reason { margin: 0; font-size: 15px; }
 
+.split {
+  width: 100%;
+  max-width: 860px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 13.5rem);
+  align-items: center;
+  gap: 20px 28px;
+}
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--frame);
+  border: 1px solid var(--rule);
+}
+.board h2 {
+  margin: 0 0 8px;
+  font: 500 11px/1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.scores { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-variant-numeric: tabular-nums; }
+.scores li {
+  display: grid;
+  grid-template-columns: 1.4em 4.6ch minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.scores.recent li { grid-template-columns: 4.6ch minmax(0, 1fr) auto; }
+.scores .rk { font-size: 11px; color: var(--muted); }
+.scores .nm { font-weight: 500; letter-spacing: 0.08em; }
+.scores .tm { text-align: right; }
+.scores li.me { background: var(--paper); color: var(--ink); }
+.scores li.me .rk { color: var(--ink); }
+.tk { display: flex; gap: 2px; }
+.tk i { display: block; width: 7px; height: 7px; border-radius: 2px; border: 1px solid var(--rule); }
+.tk i.on { border-color: transparent; }
+.tk i.on:nth-child(1) { background: var(--balance); }
+.tk i.on:nth-child(2) { background: var(--dodge); }
+.tk i.on:nth-child(3) { background: var(--zones); }
+.tk i.on:nth-child(4) { background: var(--jump); }
+.board .empty, .board .where { margin: 0; font-size: 12px; color: var(--muted); }
+.name-field { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
+#nameInput {
+  width: 8ch;
+  padding: 8px 10px;
+  font: 500 20px/1 var(--font-mono);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: transparent;
+  border: 1.5px solid var(--rule);
+  border-radius: 8px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+#nameInput::placeholder { color: var(--muted); opacity: 1; }
+#nameInput:focus { outline: 2px solid var(--paper); outline-offset: 2px; border-color: var(--paper); }
+
 .stage.compact .ctrls, .stage.compact .long, .stage.compact .note { display: none; }
+.stage.compact .split { grid-template-columns: minmax(0, 1fr); }
+.stage.compact #ovStart .board { display: none; }
 .stage.compact .card { gap: 12px; }
 .stage.compact .title { font-size: 34px; }
 .stage.compact .big { font-size: 40px; }
@@ -206,19 +272,22 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     <canvas id="cv" aria-label="Multitask play area"></canvas>
 
     <section class="overlay" id="ovStart">
-      <div class="card">
-        <h1 class="title">MULTI<br><span class="t1">T</span><span class="t2">A</span><span class="t3">S</span><span class="t4">K</span></h1>
-        <p class="lede">Keep every game alive at once.<span class="long"> You start with one. A new task joins at 0:12, 0:27 and 0:45, and everything speeds up the longer you last. One mistake anywhere ends the run.</span></p>
-        <ul class="ctrls">
-          <li style="--c: var(--balance)"><span class="nm">Balance</span><span class="ks"><kbd>←</kbd><kbd>→</kbd></span><span class="ht">Tilt the plank so the ball stays on.</span></li>
-          <li style="--c: var(--dodge)"><span class="nm">Dodge</span><span class="ks"><kbd>↑</kbd><kbd>↓</kbd></span><span class="ht">Hop between the boxes to dodge the arrows.</span></li>
-          <li style="--c: var(--zones)"><span class="nm">Zones</span><span class="ks"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span class="ht">Touch every box before its countdown hits zero.</span></li>
-          <li style="--c: var(--jump)"><span class="nm">Jump</span><span class="ks"><kbd>Space</kbd></span><span class="ht">Hop over the blocks.</span></li>
-        </ul>
-        <div class="row">
-          <button type="button" class="go" id="startBtn">Start <kbd>Space</kbd></button>
-          <p class="note">Right hand on the arrows, left hand on W A S D and Space.</p>
+      <div class="split">
+        <div class="card">
+          <h1 class="title">MULTI<br><span class="t1">T</span><span class="t2">A</span><span class="t3">S</span><span class="t4">K</span></h1>
+          <p class="lede">Keep every game alive at once.<span class="long"> You start with one. A new task joins at 0:12, 0:27 and 0:45, and everything speeds up the longer you last. One mistake anywhere ends the run.</span></p>
+          <ul class="ctrls">
+            <li style="--c: var(--balance)"><span class="nm">Balance</span><span class="ks"><kbd>←</kbd><kbd>→</kbd></span><span class="ht">Tilt the plank so the ball stays on.</span></li>
+            <li style="--c: var(--dodge)"><span class="nm">Dodge</span><span class="ks"><kbd>↑</kbd><kbd>↓</kbd></span><span class="ht">Hop between the boxes to dodge the arrows.</span></li>
+            <li style="--c: var(--zones)"><span class="nm">Zones</span><span class="ks"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span class="ht">Touch every box before its countdown hits zero.</span></li>
+            <li style="--c: var(--jump)"><span class="nm">Jump</span><span class="ks"><kbd>Space</kbd></span><span class="ht">Hop over the blocks.</span></li>
+          </ul>
+          <div class="row">
+            <button type="button" class="go" id="startBtn">Start <kbd>Space</kbd></button>
+            <p class="note">Right hand on the arrows, left hand on W A S D and Space.</p>
+          </div>
         </div>
+        <aside class="board" aria-label="Scores"></aside>
       </div>
     </section>
 
@@ -232,14 +301,22 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     </section>
 
     <section class="overlay" id="ovOver" hidden>
-      <div class="card">
-        <p class="eyebrow" id="overTask">Balance failed</p>
-        <p class="big" id="overTime">0.00</p>
-        <p class="reason" id="overReason"></p>
-        <p class="note" id="overBest"></p>
-        <div class="row">
-          <button type="button" class="go" id="retryBtn">Play again <kbd>Space</kbd></button>
+      <div class="split">
+        <div class="card">
+          <p class="eyebrow" id="overTask">Balance failed</p>
+          <p class="big" id="overTime">0.00</p>
+          <p class="reason" id="overReason"></p>
+          <p class="note" id="overBest"></p>
+          <div class="name-field">
+            <label class="lbl" for="nameInput">Your name</label>
+            <input id="nameInput" type="text" maxlength="4" placeholder="ANON" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-describedby="nameHint">
+            <span class="note" id="nameHint">Up to 4 letters or numbers. Press Enter when done.</span>
+          </div>
+          <div class="row">
+            <button type="button" class="go" id="retryBtn">Play again <kbd>Space</kbd></button>
+          </div>
         </div>
+        <aside class="board" aria-label="Scores"></aside>
       </div>
     </section>
   </div>
@@ -303,6 +380,87 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch { /* storage unavailable */ } },
   };
+
+  // ---------- scores ----------
+  // High scores and recent runs, kept in this browser.
+  const DEFAULT_NAME = 'ANON';
+  const cleanName = (v) => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+  let savedName = cleanName(store.get('multitask.name'));
+  let lastEntry = null;
+  const scores = (() => {
+    const ok = (e) => e && typeof e.id === 'string' && Number.isFinite(e.t);
+    try {
+      const d = JSON.parse(store.get('multitask.scores') || '{}');
+      return { top: (d.top || []).filter(ok).slice(0, 10), recent: (d.recent || []).filter(ok).slice(0, 5) };
+    } catch { return { top: [], recent: [] }; }
+  })();
+  const saveScores = () => store.set('multitask.scores', JSON.stringify(scores));
+
+  function recordRun(t, tasks) {
+    const e = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      name: savedName || DEFAULT_NAME,
+      t: Math.round(t * 100) / 100,
+      tasks,
+      at: Date.now(),
+    };
+    scores.recent = [e, ...scores.recent].slice(0, 5);
+    scores.top = [...scores.top, e].sort((a, b) => b.t - a.t).slice(0, 10);
+    saveScores();
+    lastEntry = e;
+    renderBoards();
+    return scores.top.findIndex((x) => x.id === e.id) + 1;
+  }
+
+  function renameLast(name) {
+    savedName = name;
+    store.set('multitask.name', name);
+    if (!lastEntry) return;
+    for (const e of [...scores.top, ...scores.recent]) if (e.id === lastEntry.id) e.name = name || DEFAULT_NAME;
+    saveScores();
+    renderBoards();
+  }
+
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+  function scoreList(title, list, ranked) {
+    const sec = el('div');
+    sec.append(el('h2', '', title));
+    if (!list.length) {
+      sec.append(el('p', 'empty', ranked ? 'No scores yet. Finish a run to get on the board.' : 'Nobody has played yet.'));
+      return sec;
+    }
+    const ol = el('ol', ranked ? 'scores' : 'scores recent');
+    list.forEach((e, i) => {
+      const li = el('li', lastEntry && e.id === lastEntry.id ? 'me' : '');
+      if (ranked) li.append(el('span', 'rk', String(i + 1)));
+      li.append(el('span', 'nm', cleanName(e.name) || DEFAULT_NAME));
+      if (!ranked) {
+        const tk = el('span', 'tk');
+        tk.title = `${e.tasks} of 4 tasks`;
+        tk.setAttribute('aria-label', tk.title);
+        for (let k = 0; k < 4; k++) tk.append(el('i', k < e.tasks ? 'on' : ''));
+        li.append(tk);
+      }
+      li.append(el('span', 'tm', fmt(e.t) + unit(e.t)));
+      ol.append(li);
+    });
+    sec.append(ol);
+    return sec;
+  }
+  function renderBoards() {
+    for (const board of document.querySelectorAll('.board')) {
+      board.replaceChildren(
+        scoreList('High scores', scores.top.slice(0, 8), true),
+        scoreList('Recent runs', scores.recent, false),
+        el('p', 'where', 'Scores are saved in this browser.'),
+      );
+    }
+  }
 
   // ---------- sound ----------
   let actx = null, master = null, musicBus = null, synthBus = null, delaySend = null, echo = null, noise = null;
@@ -1016,8 +1174,10 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     task.style.color = g.color;
     $('overTime').innerHTML = fmt(runT) + (unit(runT) ? '<small>s</small>' : '');
     $('overReason').textContent = failReason;
+    const rank = recordRun(runT, running);
+    $('nameInput').value = savedName;
     $('overBest').textContent = (newBest ? 'New best. ' : `Best ${fmt(best)}${unit(best)}. `) +
-      `You were running ${running} of 4 tasks.`;
+      (rank ? `#${rank} on the high scores. ` : '') + `You were running ${running} of 4 tasks.`;
     show('ovOver');
   }
 
@@ -1231,6 +1391,10 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   // ---------- input ----------
   const GAME_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD']);
   addEventListener('keydown', (e) => {
+    if (e.target instanceof HTMLInputElement) {
+      if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); e.target.blur(); }
+      return;
+    }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const code = e.code;
     if (GAME_KEYS.has(code)) e.preventDefault();
@@ -1252,6 +1416,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     }
   });
   addEventListener('keyup', (e) => {
+    if (e.target instanceof HTMLInputElement) return;
     keys.delete(e.code);
     if (GAME_KEYS.has(e.code)) e.preventDefault();
   });
@@ -1297,14 +1462,20 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   onButton('resumeBtn', togglePause);
   onButton('pauseBtn', () => { if (state === 'playing' || state === 'paused') togglePause(); });
   onButton('soundBtn', toggleSound);
+  $('nameInput').addEventListener('input', (e) => {
+    const v = cleanName(e.target.value);
+    if (e.target.value !== v) e.target.value = v;
+    renameLast(v);
+  });
 
   addEventListener('blur', () => { keys.clear(); touches.clear(); if (state === 'playing') togglePause(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'playing') togglePause(); });
 
   // ---------- boot ----------
   function boot(data) {
-    best = Math.max(best, Number(data && data.best) || 0);
+    best = Math.max(best, Number(data && data.best) || 0, scores.top.length ? scores.top[0].t : 0);
     labelSound();
+    renderBoards();
     resize();
     new ResizeObserver(resize).observe(wrap);
     startAttract();

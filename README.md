@@ -13,6 +13,8 @@ You start with one game. A new one joins at 0:12, 0:27 and 0:45, and everything 
 | Zones | W A S D | Touch every box with your square before its countdown hits zero. |
 | Jump | Space | Hop over the blocks. |
 
+After each run you can enter a name of up to four letters or numbers (the default is ANON). The start and game over screens show the top scores and the last five runs. For now these are saved in each player's browser.
+
 P pauses and M mutes. On a touch screen, hold either half of Balance to tilt it, tap the top or bottom of Dodge to switch boxes, hold where the Zones square should go, and tap Jump to hop.
 
 ## Run it locally
