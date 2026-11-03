@@ -180,7 +180,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
   width: 100%;
   max-width: 860px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 15rem);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 16.5rem);
   align-items: center;
   gap: 20px 28px;
 }
@@ -209,13 +209,13 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
 .scores { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-variant-numeric: tabular-nums; }
 .scores li {
   display: grid;
-  grid-template-columns: 1.4em 4.6ch minmax(0, 1fr) auto;
+  grid-template-columns: 1.4em 6.6ch minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   padding: 3px 8px;
   border-radius: 6px;
 }
-.scores.recent li { grid-template-columns: 4.6ch minmax(0, 1fr) auto; }
+.scores.recent li { grid-template-columns: 6.6ch minmax(0, 1fr) auto; }
 .scores .rk { font-size: 11px; color: var(--muted); }
 .scores .nm { font-weight: 500; letter-spacing: 0.08em; }
 .scores .tm { text-align: right; }
@@ -231,7 +231,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
 .board .empty, .board .where { margin: 0; font-size: 12px; color: var(--muted); }
 .name-field { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
 #nameInput {
-  width: 8ch;
+  width: 10.5ch;
   padding: 8px 10px;
   font: 500 20px/1 var(--font-mono);
   letter-spacing: 0.2em;
@@ -244,6 +244,8 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
   user-select: text;
 }
 #nameInput::placeholder { color: var(--muted); opacity: 1; }
+#nameHint.needed { color: var(--hover); }
+.stage.short #nameHint.needed { display: block; }
 #nameInput:focus { outline: 2px solid var(--paper); outline-offset: 2px; border-color: var(--paper); }
 
 .stage.narrow .split { grid-template-columns: minmax(0, 1fr); }
@@ -363,8 +365,8 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
           <p class="note" id="overBest"></p>
           <div class="name-field">
             <label class="lbl" for="nameInput">Your name</label>
-            <input id="nameInput" type="text" maxlength="4" placeholder="ANON" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-describedby="nameHint">
-            <span class="note" id="nameHint">Up to 4 letters or numbers. Press Enter when done.</span>
+            <input id="nameInput" type="text" maxlength="6" placeholder="NAME" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-describedby="nameHint">
+            <span class="note" id="nameHint">Up to 6 letters or numbers. Press Enter when done.</span>
           </div>
           <div class="row">
             <button type="button" class="go" id="retryBtn">Play again <kbd>Space</kbd></button>
@@ -442,8 +444,8 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
   // Every run is kept in this browser. When SHARED is filled in (the site build does this), runs also go
   // to a Supabase table, so everyone sees the same Today and All-time boards. "Today" is the UTC day.
   const SHARED = { url: "https://pmribonnuizvvxbrivyb.supabase.co", key: "sb_publishable_PXydd4TkFVdhwPQkdNY7HQ_-y4YKY3t" };
-  const DEFAULT_NAME = 'ANON';
-  const cleanName = (v) => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+  const NO_NAME = '—';   // shown for runs saved without a name; those never go to the shared board
+  const cleanName = (v) => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
   const dayKey = (ms = Date.now()) => new Date(ms).toISOString().slice(0, 10);
   const byTime = (a, b) => b.t - a.t || a.at - b.at;
   let savedName = cleanName(store.get('multitask.name'));
@@ -504,7 +506,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
   // Scores can't be edited once sent, so a run goes out when the player leaves the game over screen.
   async function submitPending(leaving = false) {
     const e = pending;
-    if (!SHARED.url || !e || e.sending) return;
+    if (!SHARED.url || !e || !e.name || e.sending) return;
     e.sending = true;
     lockName();
     try {
@@ -526,7 +528,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
   function recordRun(t, tasks) {
     const e = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      name: savedName || DEFAULT_NAME,
+      name: savedName,
       t: Math.round(t * 100) / 100,
       tasks,
       at: Date.now(),
@@ -547,15 +549,22 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
     savedName = name;
     store.set('multitask.name', name);
     if (!lastEntry) return;
-    for (const e of [...local.top, ...local.recent, ...local.today]) if (e.id === lastEntry.id) e.name = name || DEFAULT_NAME;
-    lastEntry.name = name || DEFAULT_NAME;
+    for (const e of [...local.top, ...local.recent, ...local.today]) if (e.id === lastEntry.id) e.name = name;
+    lastEntry.name = name;
     saveLocal();
     renderBoards();
+  }
+  function updateNameHint() {
+    const hint = $('nameHint'), named = !!cleanName($('nameInput').value);
+    hint.textContent = named ? 'Up to 6 letters or numbers. Press Enter when done.'
+      : SHARED.url ? 'Type a name to put this run on the scoreboard.' : 'Type a name for the scoreboard.';
+    hint.classList.toggle('needed', !named);
   }
   function lockName() {
     const input = $('nameInput');
     input.disabled = true;
     $('nameHint').textContent = 'Saved to the scoreboard.';
+    $('nameHint').classList.remove('needed');
   }
 
   // What the boards show: the shared lists when they loaded, otherwise this browser's.
@@ -590,7 +599,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
     list.forEach((e, i) => {
       const li = el('li', me && e.id === me ? 'me' : '');
       if (ranked) li.append(el('span', 'rk', String(i + 1)));
-      li.append(el('span', 'nm', cleanName(e.name) || DEFAULT_NAME));
+      li.append(el('span', 'nm', cleanName(e.name) || NO_NAME));
       const tk = el('span', 'tk');
       tk.title = `${e.tasks} of 4 tasks`;
       tk.setAttribute('aria-label', tk.title);
@@ -1392,7 +1401,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
     const input = $('nameInput');
     input.value = savedName;
     input.disabled = false;
-    $('nameHint').textContent = 'Up to 4 letters or numbers. Press Enter when done.';
+    updateNameHint();
     overNote = {
       best: newBest ? 'New best. ' : `Best ${fmt(best)}${unit(best)}. `,
       running: `You were running ${running} of 4 tasks.`,
@@ -1400,6 +1409,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
     recordRun(runT, running);
     show('ovOver');
     updateOverNote();
+    if (!savedName && !coarse) input.focus({ preventScroll: true });
   }
 
   function togglePause() {
@@ -1748,6 +1758,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
     const v = cleanName(e.target.value);
     if (e.target.value !== v) e.target.value = v;
     renameLast(v);
+    updateNameHint();
   });
 
   addEventListener('pagehide', () => submitPending(true));

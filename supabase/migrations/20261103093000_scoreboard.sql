@@ -1,16 +1,21 @@
--- Database setup for the shared scoreboard. Run in the Supabase SQL Editor.
--- Safe to re-run: every step either creates something new or replaces it.
+-- The shared scoreboard. Supabase's GitHub integration runs this when it reaches main.
+-- Every statement is safe on a database that already has the table: it creates what is
+-- missing and replaces the rules with the ones below.
 
--- The scores table. Names are 1-4 capital letters or digits; times are in seconds.
+-- One row per finished run. Times are in seconds; tasks is how many games were running.
 create table if not exists public.scores (
   id bigint generated always as identity primary key,
-  name text not null check (name ~ '^[A-Z0-9]{1,4}$'),
+  name text not null,
   seconds numeric(7,2) not null,
   tasks smallint not null check (tasks between 1 and 4),
   created_at timestamptz not null default now()
 );
 create index if not exists scores_seconds_idx on public.scores (seconds desc);
 create index if not exists scores_created_at_idx on public.scores (created_at desc);
+
+-- Names are 1-6 capital letters or digits.
+alter table public.scores drop constraint if exists scores_name_check;
+alter table public.scores add constraint scores_name_check check (name ~ '^[A-Z0-9]{1,6}$');
 
 -- No impossible times: by 15 minutes the game runs at more than 6x speed.
 alter table public.scores drop constraint if exists scores_seconds_check;
