@@ -441,7 +441,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
   // ---------- scores ----------
   // Every run is kept in this browser. When SHARED is filled in (the site build does this), runs also go
   // to a Supabase table, so everyone sees the same Today and All-time boards. "Today" is the UTC day.
-  const SHARED = { url: '', key: '' };
+  const SHARED = { url: "https://pmribonnuizvvxbrivyb.supabase.co", key: "sb_publishable_PXydd4TkFVdhwPQkdNY7HQ_-y4YKY3t" };
   const DEFAULT_NAME = 'ANON';
   const cleanName = (v) => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
   const dayKey = (ms = Date.now()) => new Date(ms).toISOString().slice(0, 10);
