@@ -479,7 +479,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
     const timer = setTimeout(() => ctl.abort(), 8000);
     return fetch(SHARED.url.replace(/\/+$/, '') + '/rest/v1/' + path, { ...opts, headers, signal: ctl.signal })
       .then((r) => {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
+        if (!r.ok) throw Object.assign(new Error('HTTP ' + r.status), { status: r.status });
         return r.status === 204 ? null : r.json();
       })
       .finally(() => clearTimeout(timer));
@@ -508,7 +508,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
     const e = pending;
     if (!SHARED.url || !e || !e.name || e.sending) return;
     e.sending = true;
-    lockName();
+    showSave(e, 'saving');
     try {
       const rows = await api('scores?select=id', {
         method: 'POST',
@@ -517,10 +517,12 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
         body: JSON.stringify({ name: e.name, seconds: e.t, tasks: e.tasks }),
       });
       if (rows && rows[0]) sharedId = 's' + rows[0].id;
+      showSave(e, 'saved');
       if (!leaving) await fetchShared();
       if (pending === e) pending = null;
-    } catch {
+    } catch (err) {
       e.sending = false;   // try again on the next chance
+      showSave(e, 'failed', err);
     }
     renderBoards();
   }
@@ -560,11 +562,15 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
       : SHARED.url ? 'Type a name to put this run on the scoreboard.' : 'Type a name for the scoreboard.';
     hint.classList.toggle('needed', !named);
   }
-  function lockName() {
-    const input = $('nameInput');
-    input.disabled = true;
-    $('nameHint').textContent = 'Saved to the scoreboard.';
-    $('nameHint').classList.remove('needed');
+  // The game over screen reports what actually happened to the run.
+  function showSave(e, stage, err) {
+    if (e !== lastEntry || state !== 'over') return;
+    const input = $('nameInput'), hint = $('nameHint');
+    input.disabled = stage !== 'failed';
+    hint.classList.toggle('needed', stage === 'failed');
+    hint.textContent = stage === 'saving' ? 'Saving to the scoreboard…'
+      : stage === 'saved' ? 'Saved to the scoreboard.'
+      : `Couldn’t save to the scoreboard${err && err.status ? ` (error ${err.status})` : ''}. It will try again when you leave this screen.`;
   }
 
   // What the boards show: the shared lists when they loaded, otherwise this browser's.
