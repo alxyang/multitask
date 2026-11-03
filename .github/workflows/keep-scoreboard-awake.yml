@@ -21,8 +21,15 @@ jobs:
           SUPABASE_URL: https://pmribonnuizvvxbrivyb.supabase.co
           SUPABASE_KEY: sb_publishable_PXydd4TkFVdhwPQkdNY7HQ_-y4YKY3t
         run: |
-          curl --fail --silent --show-error --max-time 30 \
+          set -euo pipefail
+          # Prefer: count=exact makes Supabase report the total in the Content-Range header.
+          total=$(curl --fail --silent --show-error --max-time 30 -o /dev/null -D - \
             "$SUPABASE_URL/rest/v1/scores?select=id&limit=1" \
-            -H "apikey: $SUPABASE_KEY" \
-            -o /dev/null
-          echo "The scoreboard answered."
+            -H "apikey: $SUPABASE_KEY" -H "Prefer: count=exact" \
+            | tr -d '\r' | awk -F/ 'tolower($0) ~ /^content-range:/ {print $2}')
+          echo "The scoreboard answered. Scores saved: ${total:-unknown}"
+          echo "Newest scores:"
+          curl --fail --silent --show-error --max-time 30 \
+            "$SUPABASE_URL/rest/v1/scores?select=name,seconds,tasks,created_at&order=created_at.desc&limit=5" \
+            -H "apikey: $SUPABASE_KEY"
+          echo
