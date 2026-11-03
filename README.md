@@ -13,9 +13,22 @@ You start with one game. A new one joins at 0:12, 0:27 and 0:45, and everything 
 | Zones | W A S D | Touch every box with your square before its countdown hits zero. |
 | Hover | Space | Hold to rise, let go to drop. Fly past the walls. |
 
-After each run you can enter a name of up to four letters or numbers (the default is ANON). The start and game over screens show the top scores and the last five runs. For now these are saved in each player's browser.
+P pauses and M mutes.
 
-P pauses and M mutes. On a touch screen, hold either half of Balance to tilt it, tap the top or bottom of Dodge to switch boxes, hold where the Zones square should go, and hold Hover to rise.
+## Scores
+
+After each run you can enter a name of up to four letters or numbers (the default is ANON). The scoreboard has three tabs: **Today** (resets at midnight UTC), **All time** and **Recent**. Every run is saved in the player's browser. When the shared scoreboard is configured (see below), runs also go to a Supabase table so everyone sees the same boards; if it can't be reached, the game falls back to the browser's scores.
+
+## Phones and tablets
+
+The panels resize to fill the screen: a column in portrait, a 2×2 grid in landscape (recommended, so each thumb covers two games). Touch controls:
+
+- **Balance:** hold the left or right side of its panel.
+- **Dodge:** tap the top or bottom half to switch boxes.
+- **Zones:** drag anywhere in its panel to steer, like a joystick.
+- **Hover:** hold its panel to rise.
+
+Use the full screen button where the browser supports it. On iPhone, add the page to your home screen (Share → Add to Home Screen) to play full screen.
 
 ## Run it locally
 
@@ -23,4 +36,6 @@ The whole game is `index.html`: no build step and no dependencies apart from two
 
 ## Deployment
 
-GitHub Pages serves `index.html` from the root of `main`, so every push to `main` updates the site.
+GitHub Pages serves `index.html` from the root of `main`, so every push to `main` updates the site. `manifest.webmanifest` and the `icon-*.png` files let the game be installed to a phone's home screen.
+
+The shared scoreboard is set by the `SHARED` line in the game's script (`{ url, key }`: the Supabase project URL and its public anon or publishable key). Leave it empty to keep scores in each browser only.

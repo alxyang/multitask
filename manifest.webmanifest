@@ -1,0 +1,16 @@
+{
+  "name": "Multitask",
+  "short_name": "Multitask",
+  "description": "Keep four tiny games alive at once.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#13141c",
+  "theme_color": "#13141c",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

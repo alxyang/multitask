@@ -10,6 +10,12 @@
 <meta property="og:title" content="Multitask">
 <meta property="og:description" content="Keep four tiny games alive at once. How long can you last?">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2313141c'/%3E%3Crect x='5' y='5' width='10' height='10' rx='2' fill='%239dc3e3'/%3E%3Crect x='17' y='5' width='10' height='10' rx='2' fill='%23f0a898'/%3E%3Crect x='5' y='17' width='10' height='10' rx='2' fill='%23a7d5af'/%3E%3Crect x='17' y='17' width='10' height='10' rx='2' fill='%23f2d17c'/%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Multitask">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Unbounded:wght@600;800;900&display=swap">
@@ -33,7 +39,7 @@
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html, body { height: 100%; }
+html, body { height: 100%; overscroll-behavior: none; }
 body {
   margin: 0;
   background: var(--ink);
@@ -42,9 +48,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding-inline: 16px;
-  padding-block: 14px;
+  padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px));
+  padding-block: max(14px, env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-bottom, 0px));
   overflow: hidden;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -90,6 +98,9 @@ button {
   gap: 8px;
 }
 button:hover { border-color: var(--muted); }
+.ib svg { width: 15px; height: 15px; flex: none; fill: currentColor; }
+.ib .ic-off, .ib.is-muted .ic-on { display: none; }
+.ib.is-muted .ic-off { display: block; }
 button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
 kbd {
   font: 500 11px/1 var(--font-mono);
@@ -101,7 +112,7 @@ kbd {
 
 .wrap { flex: 1; min-height: 0; display: grid; place-items: center; }
 .stage { position: relative; border-radius: 14px; overflow: hidden; background: var(--frame); max-width: 100%; }
-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-touch-callout: none; }
 
 .overlay {
   position: absolute;
@@ -169,30 +180,36 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   width: 100%;
   max-width: 860px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 13.5rem);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 15rem);
   align-items: center;
   gap: 20px 28px;
 }
 .board {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   padding: 14px;
   border-radius: 12px;
   background: var(--frame);
   border: 1px solid var(--rule);
 }
-.board h2 {
-  margin: 0 0 8px;
-  font: 500 11px/1 var(--font-mono);
-  letter-spacing: 0.14em;
+.tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 2px; border-radius: 8px; background: var(--ink); }
+.tabs button {
+  justify-content: center;
+  padding: 7px 4px;
+  border: 0;
+  border-radius: 6px;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+  white-space: nowrap;
   color: var(--muted);
 }
+.tabs button[aria-selected="true"] { background: var(--paper); color: var(--ink); }
 .scores { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-variant-numeric: tabular-nums; }
 .scores li {
   display: grid;
-  grid-template-columns: 1.4em 4.6ch minmax(0, 1fr);
+  grid-template-columns: 1.4em 4.6ch minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   padding: 3px 8px;
@@ -229,12 +246,19 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 #nameInput::placeholder { color: var(--muted); opacity: 1; }
 #nameInput:focus { outline: 2px solid var(--paper); outline-offset: 2px; border-color: var(--paper); }
 
-.stage.compact .ctrls, .stage.compact .long, .stage.compact .note { display: none; }
-.stage.compact .split { grid-template-columns: minmax(0, 1fr); }
-.stage.compact #ovStart .board { display: none; }
-.stage.compact .card { gap: 12px; }
-.stage.compact .title { font-size: 34px; }
-.stage.compact .big { font-size: 40px; }
+.stage.narrow .split { grid-template-columns: minmax(0, 1fr); }
+.stage.narrow .long { display: none; }
+.stage.narrow .ctrls { grid-template-columns: minmax(0, 1fr); }
+.stage.narrow #ovStart .board { display: none; }
+.stage.narrow .card { gap: 12px; }
+.stage.narrow .title { font-size: 34px; }
+.stage.narrow .big { font-size: 40px; }
+.stage.short .overlay { padding: 12px; }
+.stage.short .ctrls, .stage.short .long, .stage.short #ovStart .board, .stage.short #nameHint { display: none; }
+.stage.short .card { gap: 10px; }
+.stage.short .title { font-size: 30px; }
+.stage.short .big { font-size: 36px; }
+.credit { display: none; }
 
 .foot {
   display: flex;
@@ -245,6 +269,34 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   color: var(--muted);
 }
 .foot p { margin: 0; }
+
+/* Phones: a one-line HUD, icon buttons, no footer. */
+@media (max-width: 720px), (max-height: 520px) {
+  body {
+    gap: 8px;
+    padding-block: max(8px, env(safe-area-inset-top, 0px)) max(8px, env(safe-area-inset-bottom, 0px));
+  }
+  .foot, .stat-speed, .tasks { display: none; }
+  .hud { flex-wrap: nowrap; gap: 8px 14px; }
+  .readout { flex-wrap: nowrap; gap: 14px; }
+  #time { font-size: 22px; min-width: 5ch; }
+  .ib { padding: 8px; }
+  .ib .bl { display: none; }
+  .credit { display: block; margin: 0; font-size: 11px; color: var(--muted); }
+}
+@media (max-width: 420px) { .brand { display: none; } }
+@media (max-height: 520px) and (orientation: landscape) {
+  body { flex-direction: row; }
+  .wrap { min-width: 0; }
+  .hud { flex-direction: column; align-items: stretch; justify-content: flex-start; width: auto; max-width: none; margin: 0; gap: 12px; }
+  .brand { display: none; }
+  .readout { flex-direction: column; gap: 10px; }
+  .stat { flex-direction: column; align-items: flex-start; gap: 2px; }
+  #time { min-width: 0; text-align: left; }
+  .controls { flex-direction: column; align-items: stretch; gap: 6px; }
+  .ib { justify-content: center; }
+}
+@media (pointer: coarse) { kbd, .ctrls .ks { display: none; } }
 
 @media (prefers-reduced-motion: reduce) {
   .overlay { -webkit-backdrop-filter: none; backdrop-filter: none; }
@@ -257,13 +309,14 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   <div class="brand" aria-label="Multitask">MULTI<span>T</span><span>A</span><span>S</span><span>K</span></div>
   <div class="readout">
     <div class="stat"><span class="lbl">Time</span><span id="time">0.00</span></div>
-    <div class="stat"><span class="lbl">Speed</span><b id="spd">1.00×</b></div>
+    <div class="stat stat-speed"><span class="lbl">Speed</span><b id="spd">1.00×</b></div>
     <div class="stat"><span class="lbl">Best</span><b id="best">–</b></div>
   </div>
   <div class="controls">
     <div class="tasks" id="tasks" title="Tasks running"><i></i><i></i><i></i><i></i></div>
-    <button type="button" id="pauseBtn">Pause <kbd>P</kbd></button>
-    <button type="button" id="soundBtn">Mute <kbd>M</kbd></button>
+    <button type="button" class="ib" id="pauseBtn" aria-label="Pause"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg><span class="bl">Pause</span> <kbd>P</kbd></button>
+    <button type="button" class="ib" id="soundBtn" aria-label="Mute"><svg class="ic-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 5.5h3l4-3.5v12l-4-3.5h-3z"/><path d="M10.5 5.2a3.6 3.6 0 0 1 0 5.6M12.4 3.2a6.3 6.3 0 0 1 0 9.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><svg class="ic-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 5.5h3l4-3.5v12l-4-3.5h-3z"/><path d="M10.5 5.5l4 5M14.5 5.5l-4 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="bl">Mute</span> <kbd>M</kbd></button>
+    <button type="button" class="ib" id="fullBtn" aria-label="Full screen" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="bl">Full screen</span></button>
   </div>
 </header>
 
@@ -277,15 +330,16 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
           <h1 class="title">MULTI<br><span class="t1">T</span><span class="t2">A</span><span class="t3">S</span><span class="t4">K</span></h1>
           <p class="lede">Keep every game alive at once.<span class="long"> You start with one. A new task joins at 0:12, 0:27 and 0:45, and everything speeds up the longer you last. One mistake anywhere ends the run.</span></p>
           <ul class="ctrls">
-            <li style="--c: var(--balance)"><span class="nm">Balance</span><span class="ks"><kbd>←</kbd><kbd>→</kbd></span><span class="ht">Tilt the plank so the ball stays on.</span></li>
-            <li style="--c: var(--dodge)"><span class="nm">Dodge</span><span class="ks"><kbd>↑</kbd><kbd>↓</kbd></span><span class="ht">Hop between the boxes to dodge the arrows.</span></li>
-            <li style="--c: var(--zones)"><span class="nm">Zones</span><span class="ks"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span class="ht">Touch every box before its countdown hits zero.</span></li>
-            <li style="--c: var(--hover)"><span class="nm">Hover</span><span class="ks"><kbd>Space</kbd></span><span class="ht">Hold to rise, let go to drop. Miss the walls.</span></li>
+            <li style="--c: var(--balance)"><span class="nm">Balance</span><span class="ks"><kbd>←</kbd><kbd>→</kbd></span><span class="ht" data-touch="Hold the left or right side of its panel to tilt.">Tilt the plank so the ball stays on.</span></li>
+            <li style="--c: var(--dodge)"><span class="nm">Dodge</span><span class="ks"><kbd>↑</kbd><kbd>↓</kbd></span><span class="ht" data-touch="Tap the top or bottom half to hop between boxes.">Hop between the boxes to dodge the arrows.</span></li>
+            <li style="--c: var(--zones)"><span class="nm">Zones</span><span class="ks"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span class="ht" data-touch="Drag anywhere in its panel to steer. Touch every box before its countdown hits zero.">Touch every box before its countdown hits zero.</span></li>
+            <li style="--c: var(--hover)"><span class="nm">Hover</span><span class="ks"><kbd>Space</kbd></span><span class="ht" data-touch="Hold its panel to rise, let go to drop. Miss the walls.">Hold to rise, let go to drop. Miss the walls.</span></li>
           </ul>
           <div class="row">
             <button type="button" class="go" id="startBtn">Start <kbd>Space</kbd></button>
-            <p class="note">Right hand on the arrows, left hand on W A S D and Space.</p>
+            <p class="note" id="startNote">Right hand on the arrows, left hand on W A S D and Space.</p>
           </div>
+          <p class="credit">Inspired by the Flash game Multitask by IcyLime.</p>
         </div>
         <aside class="board" aria-label="Scores"></aside>
       </div>
@@ -323,7 +377,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 </main>
 
 <footer class="foot">
-  <p>Touch: hold either half of Balance to tilt it, tap the top or bottom of Dodge to switch boxes, hold where the Zones square should go, and hold Hover to rise.</p>
+  <p>Touch: hold either half of Balance to tilt it, tap the top or bottom of Dodge to switch boxes, drag in Zones to steer, and hold Hover to rise.</p>
   <p>Inspired by the Flash game Multitask by IcyLime.</p>
 </footer>
 
@@ -342,13 +396,16 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   const FD = '"Unbounded", "Arial Black", sans-serif';
   const FM = '"DM Mono", ui-monospace, Menlo, monospace';
 
-  // Each game simulates in its own 400×300 world; the stage is 800×600 units.
-  const VW = 400, VH = 300, SW = 800, SH = 600, GAP = 8, STEP = 1 / 120;
+  // Each game simulates in its own 400×300 world. The stage fills the screen; its units are CSS pixels.
+  const VW = 400, VH = 300, GAP = 8, STEP = 1 / 120;
+  let SW = 800, SH = 600;
   const UNLOCK = [0, 12, 27, 45];   // when each task goes live, in seconds
   const READY = 3;                  // warning time before a new task goes live
   const FIRST_READY = 1.8;
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const coarse = matchMedia('(pointer: coarse)').matches;
+  const standalone = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone === true;
+  const canFull = !standalone && !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
 
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   const rand = (a, b) => a + Math.random() * (b - a);
@@ -382,19 +439,89 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   };
 
   // ---------- scores ----------
-  // High scores and recent runs, kept in this browser.
+  // Every run is kept in this browser. When SHARED is filled in (the site build does this), runs also go
+  // to a Supabase table, so everyone sees the same Today and All-time boards. "Today" is the UTC day.
+  const SHARED = { url: '', key: '' };
   const DEFAULT_NAME = 'ANON';
   const cleanName = (v) => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+  const dayKey = (ms = Date.now()) => new Date(ms).toISOString().slice(0, 10);
+  const byTime = (a, b) => b.t - a.t || a.at - b.at;
   let savedName = cleanName(store.get('multitask.name'));
-  let lastEntry = null;
-  const scores = (() => {
-    const ok = (e) => e && typeof e.id === 'string' && Number.isFinite(e.t);
+  let lastEntry = null;     // the run just finished
+  let pending = null;       // that run, until it reaches the shared board
+  let sharedId = null;      // its row on the shared board, once sent
+  let boardTab = ['today', 'top', 'recent'].includes(store.get('multitask.tab')) ? store.get('multitask.tab') : 'today';
+  let overNote = null;
+
+  const local = (() => {
+    const ok = (e) => e && typeof e.id === 'string' && Number.isFinite(e.t) && Number.isFinite(e.at);
     try {
       const d = JSON.parse(store.get('multitask.scores') || '{}');
-      return { top: (d.top || []).filter(ok).slice(0, 10), recent: (d.recent || []).filter(ok).slice(0, 5) };
-    } catch { return { top: [], recent: [] }; }
+      return {
+        top: (d.top || []).filter(ok).slice(0, 10),
+        recent: (d.recent || []).filter(ok).slice(0, 5),
+        today: d.today && d.today.day === dayKey() ? (d.today.list || []).filter(ok).slice(0, 10) : [],
+        day: dayKey(),
+      };
+    } catch { return { top: [], recent: [], today: [], day: dayKey() }; }
   })();
-  const saveScores = () => store.set('multitask.scores', JSON.stringify(scores));
+  const saveLocal = () => store.set('multitask.scores', JSON.stringify({
+    top: local.top, recent: local.recent, today: { day: local.day, list: local.today },
+  }));
+
+  let shared = { status: SHARED.url ? 'loading' : 'off', today: [], top: [], recent: [] };
+  function api(path, opts = {}) {
+    const headers = { apikey: SHARED.key, ...(opts.headers || {}) };
+    if (!SHARED.key.startsWith('sb_')) headers.Authorization = 'Bearer ' + SHARED.key;   // legacy anon keys
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 8000);
+    return fetch(SHARED.url.replace(/\/+$/, '') + '/rest/v1/' + path, { ...opts, headers, signal: ctl.signal })
+      .then((r) => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.status === 204 ? null : r.json();
+      })
+      .finally(() => clearTimeout(timer));
+  }
+  const fromRow = (r) => ({ id: 's' + r.id, name: r.name, t: Number(r.seconds), tasks: r.tasks, at: Date.parse(r.created_at) });
+
+  async function fetchShared() {
+    if (!SHARED.url) return;
+    const sel = 'select=id,name,seconds,tasks,created_at';
+    const since = dayKey() + 'T00:00:00Z';
+    try {
+      const [today, top, recent] = await Promise.all([
+        api(`scores?${sel}&created_at=gte.${since}&order=seconds.desc,created_at.asc&limit=10`),
+        api(`scores?${sel}&order=seconds.desc,created_at.asc&limit=10`),
+        api(`scores?${sel}&order=created_at.desc&limit=5`),
+      ]);
+      shared = { status: 'ok', today: today.map(fromRow), top: top.map(fromRow), recent: recent.map(fromRow) };
+    } catch {
+      shared = { ...shared, status: 'error' };
+    }
+    renderBoards();
+  }
+
+  // Scores can't be edited once sent, so a run goes out when the player leaves the game over screen.
+  async function submitPending(leaving = false) {
+    const e = pending;
+    if (!SHARED.url || !e || e.sending) return;
+    e.sending = true;
+    lockName();
+    try {
+      const rows = await api('scores?select=id', {
+        method: 'POST',
+        keepalive: leaving,
+        headers: { 'Content-Type': 'application/json', Prefer: 'return=representation' },
+        body: JSON.stringify({ name: e.name, seconds: e.t, tasks: e.tasks }),
+      });
+      if (rows && rows[0]) sharedId = 's' + rows[0].id;
+      if (!leaving) await fetchShared();
+      if (pending === e) pending = null;
+    } catch {
+      e.sending = false;   // try again on the next chance
+    }
+    renderBoards();
+  }
 
   function recordRun(t, tasks) {
     const e = {
@@ -404,21 +531,46 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       tasks,
       at: Date.now(),
     };
-    scores.recent = [e, ...scores.recent].slice(0, 5);
-    scores.top = [...scores.top, e].sort((a, b) => b.t - a.t).slice(0, 10);
-    saveScores();
+    if (local.day !== dayKey()) { local.day = dayKey(); local.today = []; }
+    local.recent = [e, ...local.recent].slice(0, 5);
+    local.top = [...local.top, e].sort(byTime).slice(0, 10);
+    local.today = [...local.today, e].sort(byTime).slice(0, 10);
+    saveLocal();
     lastEntry = e;
+    sharedId = null;
+    pending = SHARED.url && e.t > 0 ? e : null;
     renderBoards();
-    return scores.top.findIndex((x) => x.id === e.id) + 1;
+    if (SHARED.url) fetchShared();
   }
 
   function renameLast(name) {
     savedName = name;
     store.set('multitask.name', name);
     if (!lastEntry) return;
-    for (const e of [...scores.top, ...scores.recent]) if (e.id === lastEntry.id) e.name = name || DEFAULT_NAME;
-    saveScores();
+    for (const e of [...local.top, ...local.recent, ...local.today]) if (e.id === lastEntry.id) e.name = name || DEFAULT_NAME;
+    lastEntry.name = name || DEFAULT_NAME;
+    saveLocal();
     renderBoards();
+  }
+  function lockName() {
+    const input = $('nameInput');
+    input.disabled = true;
+    $('nameHint').textContent = 'Saved to the scoreboard.';
+  }
+
+  // What the boards show: the shared lists when they loaded, otherwise this browser's.
+  function boardData() {
+    if (shared.status !== 'ok') {
+      if (local.day !== dayKey()) { local.day = dayKey(); local.today = []; }
+      return { today: local.today, top: local.top, recent: local.recent, me: lastEntry && lastEntry.id };
+    }
+    let { today, top, recent } = shared;
+    if (pending) {   // the run that hasn't been sent yet
+      today = [...today, pending].sort(byTime).slice(0, 10);
+      top = [...top, pending].sort(byTime).slice(0, 10);
+      recent = [pending, ...recent].slice(0, 5);
+    }
+    return { today, top, recent, me: pending ? pending.id : sharedId };
   }
 
   function el(tag, cls, text) {
@@ -427,39 +579,71 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     if (text !== undefined) n.textContent = text;
     return n;
   }
-  function scoreList(title, list, ranked) {
-    const sec = el('div');
-    sec.append(el('h2', '', title));
-    if (!list.length) {
-      sec.append(el('p', 'empty', ranked ? 'No scores yet. Finish a run to get on the board.' : 'Nobody has played yet.'));
-      return sec;
-    }
+  const TABS = [['today', 'Today'], ['top', 'All time'], ['recent', 'Recent']];
+  const EMPTY = {
+    today: 'No scores yet today. Be the first.',
+    top: 'No scores yet. Finish a run to get on the board.',
+    recent: 'Nobody has played yet.',
+  };
+  function scoreList(list, ranked, me) {
     const ol = el('ol', ranked ? 'scores' : 'scores recent');
     list.forEach((e, i) => {
-      const li = el('li', lastEntry && e.id === lastEntry.id ? 'me' : '');
+      const li = el('li', me && e.id === me ? 'me' : '');
       if (ranked) li.append(el('span', 'rk', String(i + 1)));
       li.append(el('span', 'nm', cleanName(e.name) || DEFAULT_NAME));
-      if (!ranked) {
-        const tk = el('span', 'tk');
-        tk.title = `${e.tasks} of 4 tasks`;
-        tk.setAttribute('aria-label', tk.title);
-        for (let k = 0; k < 4; k++) tk.append(el('i', k < e.tasks ? 'on' : ''));
-        li.append(tk);
-      }
+      const tk = el('span', 'tk');
+      tk.title = `${e.tasks} of 4 tasks`;
+      tk.setAttribute('aria-label', tk.title);
+      for (let k = 0; k < 4; k++) tk.append(el('i', k < e.tasks ? 'on' : ''));
+      li.append(tk);
       li.append(el('span', 'tm', fmt(e.t) + unit(e.t)));
       ol.append(li);
     });
-    sec.append(ol);
-    return sec;
+    return ol;
+  }
+  function boardNote() {
+    if (shared.status === 'loading') return 'Loading everyone’s scores…';
+    if (shared.status === 'error') return 'Couldn’t reach the shared scoreboard, so these are scores from this browser.';
+    const scope = shared.status === 'ok' ? 'Everyone’s scores.' : 'Scores from this browser.';
+    return boardTab === 'today' ? scope + ' Today resets at midnight UTC.' : scope;
   }
   function renderBoards() {
+    const d = boardData();
+    const list = boardTab === 'recent' ? d.recent : d[boardTab].slice(0, 8);
     for (const board of document.querySelectorAll('.board')) {
+      const tabs = el('div', 'tabs');
+      tabs.setAttribute('role', 'tablist');
+      for (const [id, label] of TABS) {
+        const b = el('button', '', label);
+        b.type = 'button';
+        b.dataset.tab = id;
+        b.setAttribute('role', 'tab');
+        b.setAttribute('aria-selected', String(id === boardTab));
+        tabs.append(b);
+      }
       board.replaceChildren(
-        scoreList('High scores', scores.top.slice(0, 8), true),
-        scoreList('Recent runs', scores.recent, false),
-        el('p', 'where', 'Scores are saved in this browser.'),
+        tabs,
+        list.length ? scoreList(list, boardTab !== 'recent', d.me) : el('p', 'empty', EMPTY[boardTab]),
+        el('p', 'where', boardNote()),
       );
     }
+    updateOverNote();
+  }
+  document.addEventListener('click', (e) => {
+    const tab = e.target.closest && e.target.closest('.board [data-tab]');
+    if (!tab) return;
+    boardTab = tab.dataset.tab;
+    store.set('multitask.tab', boardTab);
+    renderBoards();
+  });
+
+  // The game over line: best time, where this run placed, and how far it got.
+  function updateOverNote() {
+    if (!overNote || state !== 'over') return;
+    const d = boardData();
+    const rt = d.today.findIndex((e) => e.id === d.me) + 1, ra = d.top.findIndex((e) => e.id === d.me) + 1;
+    const places = [rt && `#${rt} today`, ra && `#${ra} of all time`].filter(Boolean);
+    $('overBest').textContent = overNote.best + (places.length ? `That’s ${places.join(' and ')}. ` : '') + overNote.running;
   }
 
   // ---------- sound ----------
@@ -630,7 +814,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     const g = {
       name: 'Balance', keys: ['←', '→'], color: tok('--balance'),
       hint: 'Tilt the plank. Keep the ball on it.',
-      touch: 'Touch: hold the left or right half',
+      touch: 'Hold the left or right side',
     };
     g.reset = () => {
       Object.assign(g, { th: 0, u: rand(-10, 10), v: rand(-12, 12), wind: 0, windT: 0, windTimer: 1.6, rot: 0, fall: null, edgeCd: 0 });
@@ -735,7 +919,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     const g = {
       name: 'Dodge', keys: ['↑', '↓'], color: tok('--dodge'),
       hint: 'Hop between the boxes. Dodge the arrows.',
-      touch: 'Touch: tap the top or bottom half',
+      touch: 'Tap the top or bottom half',
     };
     g.reset = () => { Object.assign(g, { lane: 2, y: laneY(2), m: [], timer: 1.4, t: 0 }); };
     g.press = (d) => {
@@ -827,7 +1011,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     const g = {
       name: 'Hover', keys: ['Space'], color: tok('--hover'),
       hint: 'Hold Space to rise. Let go to drop.',
-      touch: 'Touch: hold the panel to rise',
+      touch: 'Hold the panel to rise',
     };
     g.reset = () => { Object.assign(g, { y: (TOP + BOT) / 2, vy: 0, w: [], next: 160, scroll: 0, sp: 125, hold: false }); };
     function spawn() {
@@ -918,7 +1102,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     const g = {
       name: 'Zones', keys: ['W', 'A', 'S', 'D'], color: tok('--zones'),
       hint: 'Touch every box before its timer hits zero.',
-      touch: 'Touch: hold where you want the square to go',
+      touch: 'Drag anywhere to steer',
     };
     const touching = (b) => g.x + P / 2 > b.x && g.x - P / 2 < b.x + B && g.y + P / 2 > b.y && g.y - P / 2 < b.y + B;
     function spawn(s) {
@@ -937,7 +1121,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       sfx.box();
     }
     g.reset = () => {
-      Object.assign(g, { x: VW / 2, y: (TOP + BOT) / 2, t: 0, speed: 190, next: 3.0, pops: [], expired: null });
+      Object.assign(g, { x: VW / 2, y: (TOP + BOT) / 2, t: 0, stick: null, speed: 190, next: 3.0, pops: [], expired: null });
       // One box waits during the warm-up so its countdown is visible before the task goes live.
       g.boxes = [{ x: VW / 2 + 60, y: (TOP + BOT) / 2 - 80, born: -1, time: 7.5, left: 7.5, shown: 8 }];
     };
@@ -945,9 +1129,10 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       g.t += dt;
       g.speed = Math.max(190, 190 + 25 * (s - 1));
       let vx = inp.vx, vy = inp.vy;
-      if (inp.aim) {
-        const dx = inp.aim.tx - g.x, dy = inp.aim.ty - g.y, d = Math.hypot(dx, dy);
-        const k = Math.min(1, d / 12) / (d || 1);
+      g.stick = inp.aim && inp.aim.ox !== undefined ? inp.aim : null;
+      if (g.stick) {
+        const dx = g.stick.tx - g.stick.ox, dy = g.stick.ty - g.stick.oy, d = Math.hypot(dx, dy);
+        const k = d < 4 ? 0 : Math.min(1, d / 24) / d;
         vx = dx * k;
         vy = dy * k;
       }
@@ -1021,6 +1206,18 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       }
       c.textAlign = 'left';
       c.textBaseline = 'alphabetic';
+      if (g.stick) {
+        const s = g.stick, dx = s.tx - s.ox, dy = s.ty - s.oy, d = Math.hypot(dx, dy), m = d > 24 ? 24 / d : 1;
+        c.beginPath();
+        c.arc(s.ox, s.oy, 24, 0, Math.PI * 2);
+        c.strokeStyle = alpha(C.ink, 0.3);
+        c.lineWidth = 2;
+        c.stroke();
+        c.beginPath();
+        c.arc(s.ox + dx * m, s.oy + dy * m, 7, 0, Math.PI * 2);
+        c.fillStyle = alpha(C.ink, 0.35);
+        c.fill();
+      }
       rr(c, g.x - P / 2, g.y - P / 2, P, P, 3);
       c.fillStyle = C.paper;
       c.fill();
@@ -1034,17 +1231,29 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   const games = [makeBalance(), makeDodge(), makeZones(), makeHover()];
 
   // ---------- layout ----------
-  const QW = (SW - 3 * GAP) / 2, QH = (SH - 3 * GAP) / 2;
+  // Try every grid shape and keep the one with the biggest panels (a column on a portrait phone,
+  // a 2x2 grid on landscape screens). Panels keep the games' 4:3 shape; a short last row is centred.
   function targets(n) {
-    if (n === 1) return [[GAP, GAP, SW - 2 * GAP, SH - 2 * GAP]];
-    const mid = (SH - QH) / 2;
-    if (n === 2) return [[GAP, mid, QW, QH], [2 * GAP + QW, mid, QW, QH]];
-    const top = [[GAP, GAP, QW, QH], [2 * GAP + QW, GAP, QW, QH]];
-    if (n === 3) return [...top, [(SW - QW) / 2, 2 * GAP + QH, QW, QH]];
-    return [...top, [GAP, 2 * GAP + QH, QW, QH], [2 * GAP + QW, 2 * GAP + QH, QW, QH]];
+    let best = null;
+    for (let cols = 1; cols <= n; cols++) {
+      const rows = Math.ceil(n / cols);
+      const k = Math.min((SW - GAP * (cols + 1)) / cols / VW, (SH - GAP * (rows + 1)) / rows / VH);
+      if (!best || k > best.k + 1e-6) best = { cols, rows, k };
+    }
+    const { cols, rows, k } = best, pw = VW * k, ph = VH * k;
+    const y0 = (SH - rows * ph - (rows - 1) * GAP) / 2;
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const row = Math.floor(i / cols), inRow = Math.min(cols, n - row * cols);
+      const x0 = (SW - inRow * pw - (inRow - 1) * GAP) / 2;
+      out.push([x0 + (i % cols) * (pw + GAP), y0 + row * (ph + GAP), pw, ph]);
+    }
+    return out;
   }
+  let layoutN = 4;
   const panels = games.map(() => ({ x: 0, y: 0, w: 0, h: 0, tx: 0, ty: 0, tw: 0, th: 0, vis: 0, on: false }));
   function setLayout(n, instant = false) {
+    layoutN = n;
     const T = targets(n);
     panels.forEach((p, i) => {
       if (i >= n) { p.on = false; p.vis = 0; return; }
@@ -1105,6 +1314,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   }
 
   function startRun() {
+    submitPending();
     ensureAudio();
     keys.clear();
     touches.clear();
@@ -1179,11 +1389,17 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     task.style.color = g.color;
     $('overTime').innerHTML = fmt(runT) + (unit(runT) ? '<small>s</small>' : '');
     $('overReason').textContent = failReason;
-    const rank = recordRun(runT, running);
-    $('nameInput').value = savedName;
-    $('overBest').textContent = (newBest ? 'New best. ' : `Best ${fmt(best)}${unit(best)}. `) +
-      (rank ? `#${rank} on the high scores. ` : '') + `You were running ${running} of 4 tasks.`;
+    const input = $('nameInput');
+    input.value = savedName;
+    input.disabled = false;
+    $('nameHint').textContent = 'Up to 4 letters or numbers. Press Enter when done.';
+    overNote = {
+      best: newBest ? 'New best. ' : `Best ${fmt(best)}${unit(best)}. `,
+      running: `You were running ${running} of 4 tasks.`,
+    };
+    recordRun(runT, running);
     show('ovOver');
+    updateOverNote();
   }
 
   function togglePause() {
@@ -1199,11 +1415,16 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       music.start();
       show(null);
     }
-    $('pauseBtn').firstChild.nodeValue = state === 'paused' ? 'Resume ' : 'Pause ';
+    const pb = $('pauseBtn'), paused = state === 'paused';
+    pb.querySelector('.bl').textContent = paused ? 'Resume' : 'Pause';
+    pb.setAttribute('aria-label', paused ? 'Resume' : 'Pause');
   }
 
   function labelSound() {
-    $('soundBtn').firstChild.nodeValue = soundOn ? 'Mute ' : 'Unmute ';
+    const sb = $('soundBtn');
+    sb.classList.toggle('is-muted', !soundOn);
+    sb.querySelector('.bl').textContent = soundOn ? 'Mute' : 'Unmute';
+    sb.setAttribute('aria-label', soundOn ? 'Mute' : 'Unmute');
   }
   function toggleSound() {
     soundOn = !soundOn;
@@ -1223,16 +1444,25 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   }
 
   // ---------- drawing ----------
-  function drawLabel(c, g, i) {
+  // ui scales panel text up when a panel is drawn small, so it stays readable on phones.
+  function fitText(c, text, x, y, weight, size, family, maxW) {
+    c.font = `${weight} ${size}px ${family}`;
+    const w = c.measureText(text).width;
+    if (w > maxW) c.font = `${weight} ${size * maxW / w}px ${family}`;
+    c.fillText(text, x, y);
+  }
+  function drawLabel(c, g, i, ui) {
+    const base = 10 + 12 * ui;
     c.fillStyle = C.ink;
     c.strokeStyle = C.ink;
     c.textBaseline = 'alphabetic';
-    c.font = `500 11px ${FM}`;
-    c.fillText('0' + (i + 1), 14, 22);
-    c.font = `800 12px ${FD}`;
+    c.font = `500 ${11 * ui}px ${FM}`;
+    c.fillText('0' + (i + 1), 14, base);
+    c.font = `800 ${12 * ui}px ${FD}`;
     c.letterSpacing = '1px';
-    c.fillText(g.name.toUpperCase(), 38, 22);
+    c.fillText(g.name.toUpperCase(), 14 + 24 * ui, base);
     c.letterSpacing = '0px';
+    if (coarse) return;   // key caps mean nothing on a touch screen
     c.font = `500 11px ${FM}`;
     c.textAlign = 'center';
     let x = VW - 12;
@@ -1249,19 +1479,35 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     c.textAlign = 'left';
   }
 
-  function drawReady(c, g, i) {
+  function drawReady(c, g, i, ui) {
     const total = i === 0 ? FIRST_READY : READY;
     const remain = clamp(UNLOCK[i] - runT, 0, total);
     c.fillStyle = alpha(C.ink, 0.8);
     c.fillRect(-VW, -VH, VW * 3, VH * 3);
     c.textAlign = 'center';
     c.fillStyle = g.color;
-    c.font = `500 11px ${FM}`;
+    c.font = `500 ${11 * ui}px ${FM}`;
     c.letterSpacing = '2px';
     c.fillText(i === 0 ? 'FIRST TASK' : 'NEW TASK', VW / 2, 86);
     c.letterSpacing = '0px';
     c.font = `900 38px ${FD}`;
     c.fillText(g.name.toUpperCase(), VW / 2, 132);
+    if (coarse) {
+      c.fillStyle = C.paper;
+      fitText(c, g.touch, VW / 2, 194, 500, 15 * ui, FM, VW - 24);
+    } else {
+      drawKeys(c, g);
+    }
+    c.fillStyle = g.color;
+    c.font = `900 ${22 * Math.min(ui, 1.5)}px ${FD}`;
+    c.fillText(String(Math.max(1, Math.ceil(remain))), VW / 2, 264);
+    c.fillStyle = alpha(C.paper, 0.2);
+    c.fillRect(VW / 2 - 60, 276, 120, 3);
+    c.fillStyle = g.color;
+    c.fillRect(VW / 2 - 60, 276, 120 * (remain / total), 3);
+    c.textAlign = 'left';
+  }
+  function drawKeys(c, g) {
     c.font = `500 16px ${FM}`;
     const widths = g.keys.map((k) => Math.max(40, c.measureText(k).width + 26));
     const span = widths.reduce((a, b) => a + b, 0) + (widths.length - 1) * 10;
@@ -1279,19 +1525,6 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     c.fillStyle = C.paper;
     c.font = `400 13px ${FM}`;
     c.fillText(g.hint, VW / 2, 212);
-    if (coarse) {
-      c.fillStyle = alpha(C.paper, 0.6);
-      c.font = `400 11px ${FM}`;
-      c.fillText(g.touch, VW / 2, 232);
-    }
-    c.fillStyle = g.color;
-    c.font = `900 22px ${FD}`;
-    c.fillText(String(Math.max(1, Math.ceil(remain))), VW / 2, 264);
-    c.fillStyle = alpha(C.paper, 0.2);
-    c.fillRect(VW / 2 - 60, 276, 120, 3);
-    c.fillStyle = g.color;
-    c.fillRect(VW / 2 - 60, 276, 120 * (remain / total), 3);
-    c.textAlign = 'left';
   }
 
   function render() {
@@ -1320,8 +1553,9 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
       ctx.translate(p.x + (p.w - VW * k) / 2, p.y + (p.h - VH * k) / 2);
       ctx.scale(k, k);
       g.draw(ctx);
-      drawLabel(ctx, g, i);
-      if (g.phase === 'ready') drawReady(ctx, g, i);
+      const ui = clamp(0.95 / k, 1, 1.8);
+      drawLabel(ctx, g, i, ui);
+      if (g.phase === 'ready') drawReady(ctx, g, i, ui);
       if (ended && i !== failIdx) {
         ctx.fillStyle = alpha(C.ink, 0.5);
         ctx.fillRect(-VW, -VH, VW * 3, VH * 3);
@@ -1380,17 +1614,54 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   // ---------- sizing ----------
   function resize() {
     const r = wrap.getBoundingClientRect();
-    let w = r.width, h = r.height;
+    const w = Math.floor(Math.min(r.width, 1600)), h = Math.floor(Math.min(r.height, 1200));
     if (w <= 0 || h <= 0) return;
-    if (w / h > 4 / 3) w = (h * 4) / 3; else h = (w * 3) / 4;
-    w = Math.floor(w);
-    h = Math.floor(h);
+    SW = w;
+    SH = h;
     stage.style.width = w + 'px';
     stage.style.height = h + 'px';
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     cv.width = Math.round(w * dpr);
     cv.height = Math.round(h * dpr);
-    stage.classList.toggle('compact', w < 600);
+    stage.classList.toggle('narrow', w < 600);
+    stage.classList.toggle('short', h < 460);
+    setLayout(layoutN, true);
+    updateStartNote();
+  }
+
+  // Touch screens get touch wording, and a tip about holding the phone.
+  function updateStartNote() {
+    if (!coarse) return;
+    const tips = [SW > SH
+      ? 'Use both thumbs: the left side runs Balance and Zones, the right side Dodge and Hover.'
+      : 'Tip: turn your phone sideways so each thumb covers two games.'];
+    if (!canFull && !standalone && document.querySelector('link[rel="manifest"]')) {
+      tips.push('For full screen, add this page to your home screen.');
+    }
+    $('startNote').textContent = tips.join(' ');
+  }
+  function useTouchWording() {
+    if (!coarse) return;
+    document.documentElement.classList.add('touch');
+    for (const n of document.querySelectorAll('[data-touch]')) n.textContent = n.dataset.touch;
+  }
+
+  function labelFull() {
+    const on = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    const b = $('fullBtn');
+    b.querySelector('.bl').textContent = on ? 'Exit full screen' : 'Full screen';
+    b.setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen');
+  }
+  function toggleFull() {
+    const root = document.documentElement;
+    try {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      } else {
+        const done = (root.requestFullscreen || root.webkitRequestFullscreen).call(root, { navigationUI: 'hide' });
+        if (done && done.catch) done.catch(() => {});
+      }
+    } catch { /* full screen not allowed here */ }
   }
 
   // ---------- input ----------
@@ -1398,6 +1669,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   addEventListener('keydown', (e) => {
     if (e.target instanceof HTMLInputElement) {
       if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); e.target.blur(); }
+      if (e.key === 'Enter') submitPending();
       return;
     }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -1447,12 +1719,16 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     e.preventDefault();
     try { cv.setPointerCapture(e.pointerId); } catch { /* capture unsupported */ }
     const t = hit(e);
+    if (t && t.panel === 2) { t.ox = t.tx; t.oy = t.ty; }   // Zones: drag from wherever the finger lands
     touches.set(e.pointerId, t);
     if (t && t.panel === 1 && games[1].phase === 'live') games[1].press(t.zone);
   });
   cv.addEventListener('pointermove', (e) => {
     const t = touches.get(e.pointerId);
-    if (t) touches.set(e.pointerId, hit(e, t.panel));
+    if (!t) return;
+    const next = hit(e, t.panel);
+    if (next && t.ox !== undefined) { next.ox = t.ox; next.oy = t.oy; }
+    touches.set(e.pointerId, next);
   });
   const release = (e) => touches.delete(e.pointerId);
   cv.addEventListener('pointerup', release);
@@ -1465,20 +1741,31 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   onButton('resumeBtn', togglePause);
   onButton('pauseBtn', () => { if (state === 'playing' || state === 'paused') togglePause(); });
   onButton('soundBtn', toggleSound);
+  onButton('fullBtn', toggleFull);
+  document.addEventListener('fullscreenchange', labelFull);
+  document.addEventListener('webkitfullscreenchange', labelFull);
   $('nameInput').addEventListener('input', (e) => {
     const v = cleanName(e.target.value);
     if (e.target.value !== v) e.target.value = v;
     renameLast(v);
   });
 
+  addEventListener('pagehide', () => submitPending(true));
   addEventListener('blur', () => { keys.clear(); touches.clear(); if (state === 'playing') togglePause(); });
-  document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'playing') togglePause(); });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) return;
+    if (state === 'playing') togglePause();
+    submitPending(true);
+  });
 
   // ---------- boot ----------
   function boot(data) {
-    best = Math.max(best, Number(data && data.best) || 0, scores.top.length ? scores.top[0].t : 0);
+    best = Math.max(best, Number(data && data.best) || 0, local.top.length ? local.top[0].t : 0);
     labelSound();
+    useTouchWording();
+    $('fullBtn').hidden = !canFull;
     renderBoards();
+    fetchShared();
     resize();
     new ResizeObserver(resize).observe(wrap);
     startAttract();
