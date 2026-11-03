@@ -1,0 +1,28 @@
+# Supabase pauses free projects after about a week with little database activity.
+# This reads one score a day so the shared scoreboard stays awake. If the read fails
+# (for example the project is already paused), the run fails and GitHub emails you.
+name: Keep scoreboard awake
+
+on:
+  schedule:
+    - cron: '23 14 * * *'   # every day at 14:23 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read one score from Supabase
+        env:
+          # The public publishable key, the same one the game ships in its page.
+          SUPABASE_URL: https://pmribonnuizvvxbrivyb.supabase.co
+          SUPABASE_KEY: sb_publishable_PXydd4TkFVdhwPQkdNY7HQ_-y4YKY3t
+        run: |
+          curl --fail --silent --show-error --max-time 30 \
+            "$SUPABASE_URL/rest/v1/scores?select=id&limit=1" \
+            -H "apikey: $SUPABASE_KEY" \
+            -o /dev/null
+          echo "The scoreboard answered."

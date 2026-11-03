@@ -538,7 +538,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-
     saveLocal();
     lastEntry = e;
     sharedId = null;
-    pending = SHARED.url && e.t > 0 ? e : null;
+    pending = SHARED.url && e.t > 0 && e.t <= 900 ? e : null;   // the database rejects anything else
     renderBoards();
     if (SHARED.url) fetchShared();
   }

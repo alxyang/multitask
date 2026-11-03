@@ -39,3 +39,5 @@ The whole game is `index.html`: no build step and no dependencies apart from two
 GitHub Pages serves `index.html` from the root of `main`, so every push to `main` updates the site. `manifest.webmanifest` and the `icon-*.png` files let the game be installed to a phone's home screen.
 
 The shared scoreboard is set by the `SHARED` line in the game's script (`{ url, key }`: the Supabase project URL and its public anon or publishable key). Leave it empty to keep scores in each browser only.
+
+`supabase/setup.sql` creates the scores table and its rules: anyone can read scores and add one, nobody can change or delete them, the server stamps every score's time, times over 15 minutes are rejected, and at most 20 scores a minute (2,000 a day) are accepted. `.github/workflows/keep-scoreboard-awake.yml` reads one score a day so Supabase doesn't pause the free project; if the read fails, GitHub emails you.
